@@ -22,8 +22,8 @@ export default function TopBar({ tab, setTab }) {
             Domyślnie wyświetla się skrót "BD".
         ─────────────────────────────────────────────────────────── */}
         <div className="topbar-logo-wrap">
-          {/* <img src={logoSrc} alt="Logo Bezpieczny Dach" /> */}
-          <span className="topbar-logo-fallback">BD</span>
+          {<img src={logoSrc} alt="Logo Bezpieczny Dach" /> }
+        
         </div>
 
         <div>

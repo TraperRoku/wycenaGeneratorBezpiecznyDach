@@ -60,7 +60,15 @@ export const useStore = create(
         set({
           quoteItems: [
             ...quoteItems,
-            { sid: serviceId, name: svc.name, unit: svc.unit, qty: 1, price: svc.price },
+            {
+              sid:           serviceId,
+              name:          svc.name,
+              unit:          svc.unit,
+              qty:           1,
+              price:         svc.price,   // robocizna
+              hasMaterial:   false,
+              materialPrice: 0,           // materiał
+            },
           ],
         })
       },
@@ -70,9 +78,12 @@ export const useStore = create(
 
       updateQuoteItem: (idx, field, val) =>
         set((s) => ({
-          quoteItems: s.quoteItems.map((it, i) =>
-            i === idx ? { ...it, [field]: parseFloat(val) || 0 } : it
-          ),
+          quoteItems: s.quoteItems.map((it, i) => {
+            if (i !== idx) return it
+            // hasMaterial to boolean — nie parsujemy jako float
+            if (field === 'hasMaterial') return { ...it, hasMaterial: val }
+            return { ...it, [field]: parseFloat(val) || 0 }
+          }),
         })),
 
       clearQuote: () =>
@@ -95,17 +106,22 @@ export const useStore = create(
       /* ─── Wyliczenia ─── */
       getCalc: () => {
         const { quoteItems, client, discount } = get()
-        const net = quoteItems.reduce((acc, it) => acc + it.qty * it.price, 0)
-        const discountAmt = (net * discount) / 100
+        const net = quoteItems.reduce((acc, it) => {
+          const unitTotal = it.hasMaterial
+            ? (parseFloat(it.price) || 0) + (parseFloat(it.materialPrice) || 0)
+            : (parseFloat(it.price) || 0)
+          return acc + unitTotal * (parseFloat(it.qty) || 0)
+        }, 0)
+        const discountAmt      = (net * discount) / 100
         const netAfterDiscount = net - discountAmt
-        const vatRate = parseFloat(client.vatRate) || 23
-        const vat = (netAfterDiscount * vatRate) / 100
-        const gross = netAfterDiscount + vat
+        const vatRate          = parseFloat(client.vatRate) || 23
+        const vat              = (netAfterDiscount * vatRate) / 100
+        const gross            = netAfterDiscount + vat
         return { net, discountAmt, netAfterDiscount, vat, vatRate, gross }
       },
     }),
     {
-      name: 'bezpieczny-dach-store-v1',
+      name: 'bezpieczny-dach-store-v2',
     }
   )
 )
