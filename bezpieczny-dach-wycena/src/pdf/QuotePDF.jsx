@@ -134,8 +134,8 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc, hi
             <View style={S.partyCol}>
               <Text style={S.partyLabel}>Wykonawca</Text>
               <Text style={S.partyName}>BEZPIECZNY DACH</Text>
-              <Text style={S.partyDetail}>Filip Kaźmierczak</Text>
-              <Text style={S.partyDetail}>Szczecin / Goleniów, Zachodniopomorskie</Text>
+              {/* <Text style={S.partyDetail}>Filip Kaźmierczak</Text> */}
+              {/* <Text style={S.partyDetail}>Szczecin / Goleniów, Zachodniopomorskie</Text> */}
               <Text style={S.partyAccent}>tel. 518 144 882</Text>
               <Text style={S.partyAccent}>bezpiecznydach.pl</Text>
             </View>

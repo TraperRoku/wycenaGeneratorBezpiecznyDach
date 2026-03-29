@@ -92,7 +92,7 @@ export const useStore = create(
         }, 0)
         const discountAmt      = (net * discount) / 100
         const netAfterDiscount = net - discountAmt
-        const vatRate          = parseFloat(client.vatRate) || 23
+        const vatRate          = client.vatRate != null && client.vatRate !== '' ? parseFloat(client.vatRate) : 23
         const vat              = (netAfterDiscount * vatRate) / 100
         const gross            = netAfterDiscount + vat
         return { net, discountAmt, netAfterDiscount, vat, vatRate, gross }
