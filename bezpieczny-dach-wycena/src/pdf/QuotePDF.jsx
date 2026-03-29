@@ -158,33 +158,24 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc, hi
 
           <Text style={S.sectionTitle}>Zakres prac i kosztorys</Text>
 
-          {/* ── TRYB UPROSZCZONY: tylko nazwa + wartość łączna ── */}
-          {tableMode === 'simple' && (
-            <>
+          {/* ── TABELA: ternary chain zamiast && + Fragment (fix dla react-pdf reconciler) ── */}
+          {tableMode === 'simple' ? (
+            <View>
               <View style={S.tableHead}>
                 <Text style={[S.tableHeadTxt, S.colLpS]}>Lp.</Text>
                 <Text style={[S.tableHeadTxt, S.colNameS]}>Zakres prac</Text>
-                <Text style={[S.tableHeadTxt, S.colTotalS]}>Wartość</Text>
               </View>
               {quoteItems.map((item, i) => (
                 <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowAlt : {}]}>
                   <Text style={[S.tableCell, S.colLpS, { color: C.gray500, fontSize: 9 }]}>{i + 1}</Text>
                   <View style={S.colNameS}>
                     <Text style={S.tableCell}>{item.name}</Text>
-                    {/* Pokazujemy jednostkę/powierzchnię tylko jeśli nie jest ryczałtem */}
-                    {!item.isFlat && client.area
-                      ? <Text style={S.tableCellSm}>pow. dachu: {client.area} m²</Text>
-                      : null}
                   </View>
-                  <Text style={[S.tableCell, S.tableBold, S.colTotalS]}>{fmt(getRowTotal(item))}</Text>
                 </View>
               ))}
-            </>
-          )}
-
-          {/* ── TRYB Z MATERIAŁEM ── */}
-          {tableMode === 'material' && (
-            <>
+            </View>
+          ) : tableMode === 'material' ? (
+            <View>
               <View style={S.tableHead}>
                 <Text style={[S.tableHeadTxt, S.colLpM]}>Lp.</Text>
                 <Text style={[S.tableHeadTxt, S.colNameM]}>Opis</Text>
@@ -206,12 +197,9 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc, hi
                   <Text style={[S.tableCell, S.tableBold, S.colTotalM]}>{fmt(getRowTotal(item))}</Text>
                 </View>
               ))}
-            </>
-          )}
-
-          {/* ── TRYB NORMALNY: ilość × cena / jedn. ── */}
-          {tableMode === 'normal' && (
-            <>
+            </View>
+          ) : (
+            <View>
               <View style={S.tableHead}>
                 <Text style={[S.tableHeadTxt, S.colLp]}>Lp.</Text>
                 <Text style={[S.tableHeadTxt, S.colName]}>Opis</Text>
@@ -231,7 +219,7 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc, hi
                   <Text style={[S.tableCell, S.tableBold, S.colTotal]}>{fmt(getRowTotal(item))}</Text>
                 </View>
               ))}
-            </>
+            </View>
           )}
 
           {/* Podsumowanie */}
