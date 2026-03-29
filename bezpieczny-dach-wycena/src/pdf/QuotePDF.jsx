@@ -1,11 +1,5 @@
 import {
-  Document,
-  Page,
-  Text,
-  View,
-  Image,
-  StyleSheet,
-  Font,
+  Document, Page, Text, View, Image, StyleSheet, Font,
 } from '@react-pdf/renderer'
 import dayjs from 'dayjs'
 import logo from '../assets/logo.png'
@@ -13,31 +7,16 @@ import logo from '../assets/logo.png'
 Font.register({
   family: 'Roboto',
   fonts: [
-    {
-      src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf',
-      fontWeight: 400,
-    },
-    {
-      src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf',
-      fontWeight: 700,
-    },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf', fontWeight: 400 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf',    fontWeight: 700 },
   ],
 })
 
 const C = {
-  orange:      '#E85D04',
-  orangeLight: '#FFF3EB',
-  orangePale:  '#FFF8F4',
-  white:       '#FFFFFF',
-  gray50:      '#F9F9F8',
-  gray100:     '#F0EFEC',
-  gray200:     '#E0DFDB',
-  gray300:     '#C9C8C3',
-  gray500:     '#888880',
-  gray700:     '#444441',
-  gray900:     '#1A1A18',
-  green:       '#16a34a',
-  greenLight:  '#f0fdf4',
+  orange: '#E85D04', orangeLight: '#FFF3EB', orangePale: '#FFF8F4',
+  white: '#FFFFFF', gray50: '#F9F9F8', gray100: '#F0EFEC', gray200: '#E0DFDB',
+  gray300: '#C9C8C3', gray500: '#888880', gray700: '#444441', gray900: '#1A1A18',
+  green: '#16a34a', greenLight: '#f0fdf4',
 }
 
 const S = StyleSheet.create({
@@ -51,10 +30,6 @@ const S = StyleSheet.create({
   docNum:       { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 4, fontFamily: 'Roboto', fontWeight: 700 },
   docDates:     { fontSize: 9, color: 'rgba(255,255,255,0.65)', marginTop: 6, lineHeight: 1.7 },
   body:         { padding: '22 32' },
-  /* Baner z informacją o zakresie */
-  scopeBanner:  { flexDirection: 'row', alignItems: 'center', padding: '8 12', borderRadius: 4, marginBottom: 16 },
-  scopeText:    { fontSize: 9, fontFamily: 'Roboto', fontWeight: 700 },
-  /* Strony */
   parties:      { flexDirection: 'row', gap: 24, marginBottom: 22 },
   partyCol:     { flex: 1 },
   partyLabel:   { fontSize: 8, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: C.gray500, marginBottom: 5 },
@@ -63,7 +38,9 @@ const S = StyleSheet.create({
   partyAccent:  { fontSize: 10, color: C.orange, fontFamily: 'Roboto', fontWeight: 700, marginTop: 2 },
   divider:      { height: 3, backgroundColor: C.orange, borderRadius: 2, marginBottom: 18 },
   sectionTitle: { fontSize: 8, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.2, color: C.orange, marginBottom: 8 },
-  /* Tabela — tryb ŁĄCZNY (tylko cena) */
+  scopeBanner:  { padding: '8 12', borderRadius: 4, marginBottom: 14, borderLeftWidth: 3 },
+  scopeText:    { fontSize: 9, fontFamily: 'Roboto', fontWeight: 700 },
+  /* Wspólne tabela */
   tableHead:    { flexDirection: 'row', backgroundColor: C.orangeLight, padding: '7 10', borderRadius: 4 },
   tableHeadTxt: { fontSize: 8, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 },
   tableRow:     { flexDirection: 'row', padding: '9 10', borderBottomWidth: 0.5, borderBottomColor: C.gray100 },
@@ -71,23 +48,23 @@ const S = StyleSheet.create({
   tableCell:    { fontSize: 11, color: C.gray900 },
   tableCellSm:  { fontSize: 9, color: C.gray500, marginTop: 1 },
   tableBold:    { fontFamily: 'Roboto', fontWeight: 700 },
-  /* Kolumny — tryb podstawowy */
+  /* Kolumny szczegółowe */
   colLp:        { width: 22 },
   colName:      { flex: 1 },
-  colQty:       { width: 60, textAlign: 'right' },
+  colQty:       { width: 65, textAlign: 'right' },
   colPrice:     { width: 70, textAlign: 'right' },
   colTotal:     { width: 80, textAlign: 'right' },
-  /* Kolumny — tryb z materiałem (dodatkowe kolumny) */
+  /* Kolumny z materiałem */
   colLpM:       { width: 22 },
   colNameM:     { flex: 1 },
   colQtyM:      { width: 55, textAlign: 'right' },
   colLabor:     { width: 65, textAlign: 'right' },
   colMat:       { width: 65, textAlign: 'right' },
   colTotalM:    { width: 75, textAlign: 'right' },
-  /* Podwiersz z rozbiciem rob/mat */
-  subRow:       { flexDirection: 'row', padding: '2 10 6 10' },
-  subChip:      { fontSize: 8, color: C.gray500, marginRight: 12 },
-  subChipLabel: { fontFamily: 'Roboto', fontWeight: 700, color: C.gray700 },
+  /* Kolumny uproszczone (hidePrices) — tylko opis + kwota */
+  colLpS:       { width: 22 },
+  colNameS:     { flex: 1 },
+  colTotalS:    { width: 110, textAlign: 'right' },
   /* Totals */
   totalWrap:    { marginTop: 12 },
   totalRow:     { flexDirection: 'row', justifyContent: 'space-between', padding: '6 10', borderBottomWidth: 0.5, borderBottomColor: C.gray100 },
@@ -95,15 +72,12 @@ const S = StyleSheet.create({
   totalVal:     { fontSize: 11, fontFamily: 'Roboto', fontWeight: 700, color: C.gray900 },
   totalMain:    { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.orange, borderRadius: 6, padding: '11 14', marginTop: 6 },
   totalMainTxt: { fontSize: 13, fontFamily: 'Roboto', fontWeight: 700, color: C.white },
-  /* Notes */
   notesWrap:    { marginTop: 20 },
   noteBox:      { backgroundColor: C.orangePale, borderLeftWidth: 3, borderLeftColor: C.orange, padding: '10 12', borderRadius: 4 },
   noteText:     { fontSize: 10, color: C.gray700, lineHeight: 1.7 },
-  /* Podpisy */
   sigWrap:      { flexDirection: 'row', gap: 40, marginTop: 32 },
   sigBox:       { flex: 1, borderTopWidth: 1, borderTopColor: C.gray300, paddingTop: 6 },
   sigLabel:     { fontSize: 9, color: C.gray500 },
-  /* Footer */
   footer:       { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: C.gray50, borderTopWidth: 0.5, borderTopColor: C.gray200, padding: '12 32', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footerLeft:   { fontSize: 9, color: C.gray500, lineHeight: 1.7 },
   footerRight:  { alignItems: 'flex-end' },
@@ -111,38 +85,36 @@ const S = StyleSheet.create({
   footerDetail: { fontSize: 9, color: C.gray500, lineHeight: 1.6 },
 })
 
-const fmtN  = (n) => Number(n).toFixed(2)
-const fmt   = (n) => fmtN(n) + ' zł'
+const fmtN = (n) => Number(n).toFixed(2)
+const fmt  = (n) => fmtN(n) + ' zł'
 
-export default function QuotePDF({ quoteItems, client, notes, discount, calc }) {
-  const today      = dayjs().format('DD.MM.YYYY')
-  const validTo    = dayjs().add(parseInt(client.validDays) || 30, 'day').format('DD.MM.YYYY')
+const getRowTotal = (item) => {
+  const labor = parseFloat(item.price) || 0
+  const mat   = item.hasMaterial ? (parseFloat(item.materialPrice) || 0) : 0
+  return item.isFlat ? labor + mat : (labor + mat) * (parseFloat(item.qty) || 0)
+}
+
+export default function QuotePDF({ quoteItems, client, notes, discount, calc, hidePrices }) {
+  const today   = dayjs().format('DD.MM.YYYY')
+  const validTo = dayjs().add(parseInt(client.validDays) || 30, 'day').format('DD.MM.YYYY')
   const { net, discountAmt, netAfterDiscount, vat, vatRate, gross } = calc
 
-  // Czy jakakolwiek pozycja ma materiał
   const anyMaterial = quoteItems.some((it) => it.hasMaterial)
 
-  const getRowTotal = (item) => {
-    const labor = parseFloat(item.price) || 0
-    const mat   = item.hasMaterial ? (parseFloat(item.materialPrice) || 0) : 0
-    return (labor + mat) * (parseFloat(item.qty) || 0)
-  }
+  // hidePrices — globalny tryb uproszczony: tylko nazwa + kwota łączna
+  // W trybie szczegółowym: 'material' lub 'normal'
+  const tableMode = hidePrices ? 'simple' : anyMaterial ? 'material' : 'normal'
 
-  // Tekst baneru zakresu
   const scopeText = anyMaterial
     ? 'Wycena obejmuje robociznę i materiał'
     : 'Wycena obejmuje wyłącznie robociznę'
-  const scopeBg   = anyMaterial ? C.orangePale  : C.greenLight
-  const scopeClr  = anyMaterial ? C.orange      : C.green
-  const scopeBdr  = anyMaterial ? C.orange      : C.green
+  const scopeClr = anyMaterial ? C.orange : C.green
+  const scopeBg  = anyMaterial ? C.orangePale : C.greenLight
 
   return (
-    <Document
-      title={`Wycena ${client.quoteNum || ''} — ${client.name || 'Klient'}`}
-      author="Bezpieczny Dach"
-    >
+    <Document title={`Wycena ${client.quoteNum || ''} — ${client.name || 'Klient'}`} author="Bezpieczny Dach">
       <Page size="A4" style={S.page}>
-        {/* ─── NAGŁÓWEK ─── */}
+        {/* NAGŁÓWEK */}
         <View style={S.header}>
           <View>
             <Image style={S.headerLogo} src={logo} />
@@ -179,17 +151,39 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc }) 
 
           <View style={S.divider} />
 
-          {/* Baner z zakresem wyceny */}
-          <View style={[S.scopeBanner, { backgroundColor: scopeBg, borderLeftWidth: 3, borderLeftColor: scopeBdr }]}>
-            <Text style={[S.scopeText, { color: scopeClr }]}>
-              {scopeText}
-            </Text>
+          {/* Baner zakresu */}
+          <View style={[S.scopeBanner, { backgroundColor: scopeBg, borderLeftColor: scopeClr }]}>
+            <Text style={[S.scopeText, { color: scopeClr }]}>{scopeText}</Text>
           </View>
 
           <Text style={S.sectionTitle}>Zakres prac i kosztorys</Text>
 
-          {/* ── TABELA — tryb z materiałem (osobne kolumny Robocizna / Materiał) ── */}
-          {anyMaterial ? (
+          {/* ── TRYB UPROSZCZONY: tylko nazwa + wartość łączna ── */}
+          {tableMode === 'simple' && (
+            <>
+              <View style={S.tableHead}>
+                <Text style={[S.tableHeadTxt, S.colLpS]}>Lp.</Text>
+                <Text style={[S.tableHeadTxt, S.colNameS]}>Zakres prac</Text>
+                <Text style={[S.tableHeadTxt, S.colTotalS]}>Wartość</Text>
+              </View>
+              {quoteItems.map((item, i) => (
+                <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowAlt : {}]}>
+                  <Text style={[S.tableCell, S.colLpS, { color: C.gray500, fontSize: 9 }]}>{i + 1}</Text>
+                  <View style={S.colNameS}>
+                    <Text style={S.tableCell}>{item.name}</Text>
+                    {/* Pokazujemy jednostkę/powierzchnię tylko jeśli nie jest ryczałtem */}
+                    {!item.isFlat && client.area
+                      ? <Text style={S.tableCellSm}>pow. dachu: {client.area} m²</Text>
+                      : null}
+                  </View>
+                  <Text style={[S.tableCell, S.tableBold, S.colTotalS]}>{fmt(getRowTotal(item))}</Text>
+                </View>
+              ))}
+            </>
+          )}
+
+          {/* ── TRYB Z MATERIAŁEM ── */}
+          {tableMode === 'material' && (
             <>
               <View style={S.tableHead}>
                 <Text style={[S.tableHeadTxt, S.colLpM]}>Lp.</Text>
@@ -199,29 +193,24 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc }) 
                 <Text style={[S.tableHeadTxt, S.colMat]}>Materiał</Text>
                 <Text style={[S.tableHeadTxt, S.colTotalM]}>Wartość</Text>
               </View>
-
               {quoteItems.map((item, i) => (
-                <View key={i}>
-                  <View style={[S.tableRow, i % 2 === 1 ? S.tableRowAlt : {}]}>
-                    <Text style={[S.tableCell, S.colLpM, { color: C.gray500, fontSize: 9 }]}>{i + 1}</Text>
-                    <View style={S.colNameM}>
-                      <Text style={S.tableCell}>{item.name}</Text>
-                      <Text style={S.tableCellSm}>{item.unit}</Text>
-                    </View>
-                    <Text style={[S.tableCell, S.colQtyM]}>{fmtN(item.qty)} {item.unit}</Text>
-                    <Text style={[S.tableCell, S.colLabor]}>{fmtN(item.price)} zł</Text>
-                    <Text style={[S.tableCell, S.colMat]}>
-                      {item.hasMaterial ? `${fmtN(item.materialPrice)} zł` : '—'}
-                    </Text>
-                    <Text style={[S.tableCell, S.tableBold, S.colTotalM]}>
-                      {fmt(getRowTotal(item))}
-                    </Text>
+                <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowAlt : {}]}>
+                  <Text style={[S.tableCell, S.colLpM, { color: C.gray500, fontSize: 9 }]}>{i + 1}</Text>
+                  <View style={S.colNameM}>
+                    <Text style={S.tableCell}>{item.name}</Text>
+                    <Text style={S.tableCellSm}>{item.isFlat ? 'ryczałt' : item.unit}</Text>
                   </View>
+                  <Text style={[S.tableCell, S.colQtyM]}>{item.isFlat ? '—' : `${fmtN(item.qty)} ${item.unit}`}</Text>
+                  <Text style={[S.tableCell, S.colLabor]}>{fmtN(item.price)} zł</Text>
+                  <Text style={[S.tableCell, S.colMat]}>{item.hasMaterial ? `${fmtN(item.materialPrice)} zł` : '—'}</Text>
+                  <Text style={[S.tableCell, S.tableBold, S.colTotalM]}>{fmt(getRowTotal(item))}</Text>
                 </View>
               ))}
             </>
-          ) : (
-            /* ── TABELA — tryb tylko robocizna ── */
+          )}
+
+          {/* ── TRYB NORMALNY: ilość × cena / jedn. ── */}
+          {tableMode === 'normal' && (
             <>
               <View style={S.tableHead}>
                 <Text style={[S.tableHeadTxt, S.colLp]}>Lp.</Text>
@@ -230,19 +219,16 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc }) 
                 <Text style={[S.tableHeadTxt, S.colPrice]}>Cena / jedn.</Text>
                 <Text style={[S.tableHeadTxt, S.colTotal]}>Wartość</Text>
               </View>
-
               {quoteItems.map((item, i) => (
                 <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowAlt : {}]}>
                   <Text style={[S.tableCell, S.colLp, { color: C.gray500, fontSize: 9 }]}>{i + 1}</Text>
                   <View style={S.colName}>
                     <Text style={S.tableCell}>{item.name}</Text>
-                    <Text style={S.tableCellSm}>{item.unit}</Text>
+                    <Text style={S.tableCellSm}>{item.isFlat ? 'ryczałt' : item.unit}</Text>
                   </View>
-                  <Text style={[S.tableCell, S.colQty]}>{fmtN(item.qty)} {item.unit}</Text>
-                  <Text style={[S.tableCell, S.colPrice]}>{fmtN(item.price)} zł</Text>
-                  <Text style={[S.tableCell, S.tableBold, S.colTotal]}>
-                    {fmt(getRowTotal(item))}
-                  </Text>
+                  <Text style={[S.tableCell, S.colQty]}>{item.isFlat ? '—' : `${fmtN(item.qty)} ${item.unit}`}</Text>
+                  <Text style={[S.tableCell, S.colPrice]}>{item.isFlat ? '—' : `${fmtN(item.price)} zł`}</Text>
+                  <Text style={[S.tableCell, S.tableBold, S.colTotal]}>{fmt(getRowTotal(item))}</Text>
                 </View>
               ))}
             </>
@@ -276,32 +262,21 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc }) 
             </View>
           </View>
 
-          {/* Uwagi */}
           {notes ? (
             <View style={S.notesWrap}>
               <Text style={S.sectionTitle}>Uwagi</Text>
-              <View style={S.noteBox}>
-                <Text style={S.noteText}>{notes}</Text>
-              </View>
+              <View style={S.noteBox}><Text style={S.noteText}>{notes}</Text></View>
             </View>
           ) : null}
 
-          {/* Podpisy */}
           <View style={S.sigWrap}>
-            <View style={S.sigBox}>
-              <Text style={S.sigLabel}>Podpis Wykonawcy</Text>
-            </View>
-            <View style={S.sigBox}>
-              <Text style={S.sigLabel}>Podpis Zleceniodawcy / pieczęć</Text>
-            </View>
+            <View style={S.sigBox}><Text style={S.sigLabel}>Podpis Wykonawcy</Text></View>
+            <View style={S.sigBox}><Text style={S.sigLabel}>Podpis Zleceniodawcy / pieczęć</Text></View>
           </View>
         </View>
 
-        {/* Stopka */}
         <View style={S.footer} fixed>
-          <Text style={S.footerLeft}>
-            {`Wycena wystawiona: ${today}  ·  Ważna do: ${validTo}  ·  ${client.quoteNum || ''}`}
-          </Text>
+          <Text style={S.footerLeft}>{`Wycena wystawiona: ${today}  ·  Ważna do: ${validTo}  ·  ${client.quoteNum || ''}`}</Text>
           <View style={S.footerRight}>
             <Text style={S.footerBrand}>BEZPIECZNY DACH</Text>
             <Text style={S.footerDetail}>tel. 518 144 882  ·  bezpiecznydach.pl</Text>

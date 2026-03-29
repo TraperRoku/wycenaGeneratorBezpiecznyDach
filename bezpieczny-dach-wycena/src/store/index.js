@@ -13,7 +13,6 @@ const freshQuoteNum = () => {
 export const useStore = create(
   persist(
     (set, get) => ({
-      /* ─── Katalog usług ─── */
       services: DEFAULT_SERVICES,
 
       addService: (svc) =>
@@ -30,27 +29,20 @@ export const useStore = create(
           quoteItems: s.quoteItems.filter((i) => i.sid !== id),
         })),
 
-      /* ─── Wycena ─── */
       quoteItems: [],
       client: {
-        name: '',
-        address: '',
-        phone: '',
-        email: '',
-        area: '',
-        quoteNum: freshQuoteNum(),
-        validDays: 30,
-        vatRate: 23,
+        name: '', address: '', phone: '', email: '', area: '',
+        quoteNum: freshQuoteNum(), validDays: 30, vatRate: 23,
       },
       notes: '',
       discount: 0,
+      hidePrices: false,   // ← globalny tryb "tylko cena łączna"
 
       setClient: (field, val) =>
         set((s) => ({ client: { ...s.client, [field]: val } })),
-
       setNotes: (val) => set({ notes: val }),
-
       setDiscount: (val) => set({ discount: parseFloat(val) || 0 }),
+      setHidePrices: (val) => set({ hidePrices: val }),
 
       addToQuote: (serviceId) => {
         const { services, quoteItems } = get()
@@ -61,13 +53,10 @@ export const useStore = create(
           quoteItems: [
             ...quoteItems,
             {
-              sid:           serviceId,
-              name:          svc.name,
-              unit:          svc.unit,
-              qty:           1,
-              price:         svc.price,   // robocizna
-              hasMaterial:   false,
-              materialPrice: 0,           // materiał
+              sid: serviceId, name: svc.name, unit: svc.unit,
+              qty: 1, price: svc.price,
+              hasMaterial: false, materialPrice: 0,
+              isFlat: false,
             },
           ],
         })
@@ -80,37 +69,26 @@ export const useStore = create(
         set((s) => ({
           quoteItems: s.quoteItems.map((it, i) => {
             if (i !== idx) return it
-            // hasMaterial to boolean — nie parsujemy jako float
-            if (field === 'hasMaterial') return { ...it, hasMaterial: val }
+            if (field === 'hasMaterial' || field === 'isFlat') return { ...it, [field]: val }
             return { ...it, [field]: parseFloat(val) || 0 }
           }),
         })),
 
       clearQuote: () =>
         set({
-          quoteItems: [],
-          notes: '',
-          discount: 0,
+          quoteItems: [], notes: '', discount: 0, hidePrices: false,
           client: {
-            name: '',
-            address: '',
-            phone: '',
-            email: '',
-            area: '',
-            quoteNum: freshQuoteNum(),
-            validDays: 30,
-            vatRate: 23,
+            name: '', address: '', phone: '', email: '', area: '',
+            quoteNum: freshQuoteNum(), validDays: 30, vatRate: 23,
           },
         }),
 
-      /* ─── Wyliczenia ─── */
       getCalc: () => {
         const { quoteItems, client, discount } = get()
         const net = quoteItems.reduce((acc, it) => {
-          const unitTotal = it.hasMaterial
-            ? (parseFloat(it.price) || 0) + (parseFloat(it.materialPrice) || 0)
-            : (parseFloat(it.price) || 0)
-          return acc + unitTotal * (parseFloat(it.qty) || 0)
+          const labor = parseFloat(it.price) || 0
+          const mat   = it.hasMaterial ? (parseFloat(it.materialPrice) || 0) : 0
+          return acc + (it.isFlat ? labor + mat : (labor + mat) * (parseFloat(it.qty) || 0))
         }, 0)
         const discountAmt      = (net * discount) / 100
         const netAfterDiscount = net - discountAmt
@@ -120,8 +98,6 @@ export const useStore = create(
         return { net, discountAmt, netAfterDiscount, vat, vatRate, gross }
       },
     }),
-    {
-      name: 'bezpieczny-dach-store-v2',
-    }
+    { name: 'bezpieczny-dach-store-v4' }
   )
 )
