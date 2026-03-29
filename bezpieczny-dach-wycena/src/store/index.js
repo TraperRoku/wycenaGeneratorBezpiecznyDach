@@ -3,7 +3,8 @@ import { persist } from 'zustand/middleware'
 import { DEFAULT_SERVICES } from '../data/services'
 import dayjs from 'dayjs'
 
-let _nextId = 500
+// Usunięto _nextId — ID liczone dynamicznie z max istniejących,
+// żeby uniknąć kolizji po przeładowaniu strony
 
 const freshQuoteNum = () => {
   const d = dayjs()
@@ -16,7 +17,10 @@ export const useStore = create(
       services: DEFAULT_SERVICES,
 
       addService: (svc) =>
-        set((s) => ({ services: [...s.services, { ...svc, id: _nextId++ }] })),
+        set((s) => {
+          const maxId = s.services.reduce((m, sv) => Math.max(m, sv.id), 0)
+          return { services: [...s.services, { ...svc, id: maxId + 1 }] }
+        }),
 
       updateService: (id, data) =>
         set((s) => ({
@@ -36,7 +40,7 @@ export const useStore = create(
       },
       notes: '',
       discount: 0,
-      hidePrices: false,   // ← globalny tryb "tylko cena łączna"
+      hidePrices: false,
 
       setClient: (field, val) =>
         set((s) => ({ client: { ...s.client, [field]: val } })),
@@ -92,6 +96,7 @@ export const useStore = create(
         }, 0)
         const discountAmt      = (net * discount) / 100
         const netAfterDiscount = net - discountAmt
+        // Fix: || 23 traktuje 0 jako falsy — używamy jawnego sprawdzenia
         const vatRate          = client.vatRate != null && client.vatRate !== '' ? parseFloat(client.vatRate) : 23
         const vat              = (netAfterDiscount * vatRate) / 100
         const gross            = netAfterDiscount + vat

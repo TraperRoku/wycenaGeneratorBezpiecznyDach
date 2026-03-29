@@ -124,7 +124,7 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc, hi
           <View style={S.docRight}>
             <Text style={S.docType}>WYCENA</Text>
             <Text style={S.docNum}>{client.quoteNum || 'WYC/2025/001'}</Text>
-            <Text style={S.docDates}>{`Data wystawienia: ${today}\nWażna do: ${validTo}`}</Text>
+          {/*  <Text style={S.docDates}>{`Data wystawienia: ${today}\nWażna do: ${validTo}`}</Text> */}
           </View>
         </View>
 
@@ -258,13 +258,13 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc, hi
           ) : null}
 
           <View style={S.sigWrap}>
-            <View style={S.sigBox}><Text style={S.sigLabel}>Podpis Wykonawcy</Text></View>
-            <View style={S.sigBox}><Text style={S.sigLabel}>Podpis Zleceniodawcy / pieczęć</Text></View>
+            {/*<View style={S.sigBox}><Text style={S.sigLabel}>Podpis Wykonawcy</Text></View>
+            <View style={S.sigBox}><Text style={S.sigLabel}>Podpis Zleceniodawcy / pieczęć</Text></View>*/}
           </View>
         </View>
 
         <View style={S.footer} fixed>
-          <Text style={S.footerLeft}>{`Wycena wystawiona: ${today}  ·  Ważna do: ${validTo}  ·  ${client.quoteNum || ''}`}</Text>
+          {/*<Text style={S.footerLeft}>{`Wycena wystawiona: ${today}  ·  Ważna do: ${validTo}  ·  ${client.quoteNum || ''}`}</Text> */ }
           <View style={S.footerRight}>
             <Text style={S.footerBrand}>BEZPIECZNY DACH</Text>
             <Text style={S.footerDetail}>tel. 518 144 882  ·  bezpiecznydach.pl</Text>
