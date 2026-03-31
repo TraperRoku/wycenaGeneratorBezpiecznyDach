@@ -192,8 +192,8 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc, hi
                     <Text style={S.tableCellSm}>{item.isFlat ? 'ryczałt' : item.unit}</Text>
                   </View>
                   <Text style={[S.tableCell, S.colQtyM]}>{item.isFlat ? '—' : `${fmtN(item.qty)} ${item.unit}`}</Text>
-                  <Text style={[S.tableCell, S.colLabor]}>{fmtN(item.price)} zł</Text>
-                  <Text style={[S.tableCell, S.colMat]}>{item.hasMaterial ? `${fmtN(item.materialPrice)} zł` : '—'}</Text>
+                  <Text style={[S.tableCell, S.colLabor]}>{fmtN(item.price)} zł{!item.isFlat ? `/${item.unit}` : ''}</Text>
+                  <Text style={[S.tableCell, S.colMat]}>{item.hasMaterial ? `${fmtN(item.materialPrice)} zł${!item.isFlat ? `/${item.unit}` : ''}` : '—'}</Text>
                   <Text style={[S.tableCell, S.tableBold, S.colTotalM]}>{fmt(getRowTotal(item))}</Text>
                 </View>
               ))}

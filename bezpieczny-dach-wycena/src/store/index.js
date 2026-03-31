@@ -3,9 +3,6 @@ import { persist } from 'zustand/middleware'
 import { DEFAULT_SERVICES } from '../data/services'
 import dayjs from 'dayjs'
 
-// Usunięto _nextId — ID liczone dynamicznie z max istniejących,
-// żeby uniknąć kolizji po przeładowaniu strony
-
 const freshQuoteNum = () => {
   const d = dayjs()
   return `WYC/${d.format('MM')}/${d.format('YYYY')}/001`
@@ -96,13 +93,60 @@ export const useStore = create(
         }, 0)
         const discountAmt      = (net * discount) / 100
         const netAfterDiscount = net - discountAmt
-        // Fix: || 23 traktuje 0 jako falsy — używamy jawnego sprawdzenia
         const vatRate          = client.vatRate != null && client.vatRate !== '' ? parseFloat(client.vatRate) : 23
         const vat              = (netAfterDiscount * vatRate) / 100
         const gross            = netAfterDiscount + vat
         return { net, discountAmt, netAfterDiscount, vat, vatRate, gross }
       },
+
+      // ─── Historia wycen ───────────────────────────────────────────
+      savedQuotes: [],
+
+      saveQuote: (folderOverride) => {
+        const { quoteItems, client, notes, discount, hidePrices, getCalc } = get()
+        const calc  = getCalc()
+        const now   = dayjs()
+        const folder = folderOverride || now.format('YYYY/MM')
+        const id    = Date.now()
+        set((s) => ({
+          savedQuotes: [
+            {
+              id,
+              savedAt:    now.toISOString(),
+              folder,
+              quoteNum:   client.quoteNum || '',
+              clientName: client.name     || '(bez nazwy)',
+              gross:      calc.gross,
+              snapshot:   { quoteItems, client, notes, discount, hidePrices },
+            },
+            ...s.savedQuotes,
+          ],
+        }))
+        return id
+      },
+
+      loadQuote: (id) => {
+        const { savedQuotes } = get()
+        const q = savedQuotes.find((q) => q.id === id)
+        if (!q) return
+        const { quoteItems, client, notes, discount, hidePrices } = q.snapshot
+        set({ quoteItems, client, notes, discount, hidePrices })
+      },
+
+      moveQuote: (id, folder) => {
+        if (!folder.trim()) return
+        set((s) => ({
+          savedQuotes: s.savedQuotes.map((q) =>
+            q.id === id ? { ...q, folder: folder.trim() } : q
+          ),
+        }))
+      },
+
+      deleteQuote: (id) => {
+        if (!window.confirm('Usunąć tę wycenę z historii?')) return
+        set((s) => ({ savedQuotes: s.savedQuotes.filter((q) => q.id !== id) }))
+      },
     }),
-    { name: 'bezpieczny-dach-store-v4' }
+    { name: 'bezpieczny-dach-store-v5' }
   )
 )

@@ -12,7 +12,7 @@ export default function Builder({ onGoPreview }) {
   const {
     quoteItems, notes, discount, hidePrices,
     updateQuoteItem, removeFromQuote,
-    setNotes, setDiscount, setHidePrices, clearQuote, getCalc,
+    setNotes, setDiscount, setHidePrices, clearQuote, getCalc, saveQuote,
   } = useStore()
 
   const { net, discountAmt, netAfterDiscount, vat, vatRate, gross } = getCalc()
@@ -105,6 +105,14 @@ export default function Builder({ onGoPreview }) {
           <div />
         </div>
 
+
+        {quoteItems.length > 0 && (
+  <button className="btn btn-secondary" onClick={() => {
+    saveQuote()
+    alert('✓ Wycena zapisana w historii')
+  }}>💾 Zapisz</button>
+)}
+
         <div className="quote-table-body">
           {quoteItems.length === 0 ? (
             <div className="empty-quote">
@@ -118,8 +126,8 @@ export default function Builder({ onGoPreview }) {
               return (
                 <div key={idx} style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 85px 110px 110px 85px 110px 36px',
-                  gap: 6, padding: '10px 14px',
+                  gridTemplateColumns: '1fr 90px 120px 120px 90px 120px 36px',
+                  gap: 14, padding: '10px 14px',
                   borderBottom: '1px solid #F0EFEC',
                   alignItems: 'center', background: rowBg, transition: 'background 0.15s',
                 }}>
@@ -260,4 +268,5 @@ export default function Builder({ onGoPreview }) {
       )}
     </div>
   )
+  
 }

@@ -32,6 +32,6 @@ export const DEFAULT_SERVICES = [
   { id: 24, cat: 'Elementy dodatkowe', name: 'Świetlik dachowy — montaż',                     price: 280, unit: 'szt.' },
   { id: 25, cat: 'Elementy dodatkowe', name: 'Wpust dachowy',                                 price: 150, unit: 'szt.' },
   { id: 26, cat: 'Elementy dodatkowe', name: 'Drabinka wyłazowa',                              price: 320, unit: 'szt.' },
-   { id: 17, cat: 'Izolacja termiczna', name: 'Steropian spadkowy 1% XPS',                          price: 8,   unit: 'm²' },
+   { id: 27, cat: 'Izolacja termiczna', name: 'Steropian spadkowy 1% XPS',                          price: 8,   unit: 'm²' },
   
 ]

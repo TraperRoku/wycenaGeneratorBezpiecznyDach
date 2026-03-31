@@ -8,9 +8,10 @@ try {
 }
 
 const TABS = [
-  { id: 'builder',  label: '📋 Kreator'      },
-  { id: 'preview',  label: '🖨️ Podgląd PDF'   },
-  { id: 'catalog',  label: '⚙️ Katalog usług' },
+  { id: 'builder', label: '📋 Kreator' },
+  { id: 'preview', label: '🖨️ Podgląd PDF' },
+  { id: 'catalog', label: '⚙️ Katalog usług' },
+  { id: 'history', label: '🗂️ Historia wycen' },
 ]
 
 export default function TopBar({ tab, setTab }) {

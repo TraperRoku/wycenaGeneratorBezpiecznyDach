@@ -5,6 +5,7 @@ import Builder  from './components/Builder'
 import Preview  from './components/Preview'
 import Catalog  from './components/Catalog'
 import AddModal from './components/AddModal'
+import History  from './components/History'
 
 export default function App() {
   const [tab,        setTab]        = useState('builder')
@@ -34,6 +35,10 @@ export default function App() {
         {tab === 'catalog' && (
           <Catalog onEdit={openModal} />
         )}
+        {tab === 'history' && (
+         <History onLoad={() => setTab('builder')} />
+        )}
+
       </div>
 
       {/* Modal dodawania / edycji usługi */}
