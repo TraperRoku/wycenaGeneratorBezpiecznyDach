@@ -35,12 +35,18 @@ export default function Builder({ onGoPreview }) {
               : 'Kliknij usługi z panelu po lewej'}
           </div>
         </div>
-        <div className="panel-actions">
-          {quoteItems.length > 0 && (
-            <button className="btn btn-secondary" onClick={clearQuote}>🗑 Wyczyść</button>
-          )}
-          <button className="btn btn-primary" onClick={onGoPreview}>Podgląd PDF →</button>
-        </div>
+       <div className="panel-actions">
+  {quoteItems.length > 0 && (
+    <>
+      <button className="btn btn-secondary" onClick={() => {
+        saveQuote()
+        alert('✓ Wycena zapisana w historii')
+      }}>💾 Zapisz</button>
+      <button className="btn btn-secondary" onClick={clearQuote}>🗑 Wyczyść</button>
+    </>
+  )}
+  <button className="btn btn-primary" onClick={onGoPreview}>Podgląd PDF →</button>
+</div>
       </div>
 
       {/* Globalny przełącznik: szczegółowy vs tylko cena łączna */}
@@ -106,12 +112,7 @@ export default function Builder({ onGoPreview }) {
         </div>
 
 
-        {quoteItems.length > 0 && (
-  <button className="btn btn-secondary" onClick={() => {
-    saveQuote()
-    alert('✓ Wycena zapisana w historii')
-  }}>💾 Zapisz</button>
-)}
+    
 
         <div className="quote-table-body">
           {quoteItems.length === 0 ? (

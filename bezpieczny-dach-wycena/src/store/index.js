@@ -147,6 +147,21 @@ export const useStore = create(
         set((s) => ({ savedQuotes: s.savedQuotes.filter((q) => q.id !== id) }))
       },
     }),
-    { name: 'bezpieczny-dach-store-v5' }
+    {
+  name: 'bezpieczny-dach-store-v5',
+  version: 1,
+  migrate: (persistedState, version) => {
+    if (version < 1) return {}   // stary zapis → wyczyść
+    return persistedState
+  },
+  merge: (persistedState, currentState) => ({
+    ...currentState,
+    ...persistedState,
+    // services z localStorage (zawiera twoje usługi) lub fallback na DEFAULT
+    services: persistedState?.services?.length
+      ? persistedState.services
+      : currentState.services,
+  }),
+}
   )
 )
