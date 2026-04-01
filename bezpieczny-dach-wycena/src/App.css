@@ -36,6 +36,9 @@ html, body, #root {
   background: var(--gray-50);
   -webkit-font-smoothing: antialiased;
 }
+.main-panel > * {
+  flex-shrink: 0;
+}
 
 /* ─── App Shell ─── */
 .app {
@@ -445,6 +448,7 @@ textarea { resize: vertical; min-height: 64px; }
   border-radius: var(--radius-lg);
   border: 1px solid var(--gray-200);
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .catalog-head {

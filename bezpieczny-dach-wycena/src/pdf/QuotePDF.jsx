@@ -29,7 +29,7 @@ const S = StyleSheet.create({
   docType:      { fontFamily: 'Roboto', fontWeight: 700, fontSize: 20, color: C.white, letterSpacing: 2 },
   docNum:       { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 4, fontFamily: 'Roboto', fontWeight: 700 },
   docDates:     { fontSize: 9, color: 'rgba(255,255,255,0.65)', marginTop: 6, lineHeight: 1.7 },
-  body:         { padding: '22 32' },
+body: { padding: '22 32 80 32' },
   parties:      { flexDirection: 'row', gap: 24, marginBottom: 22 },
   partyCol:     { flex: 1 },
   partyLabel:   { fontSize: 8, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: C.gray500, marginBottom: 5 },
@@ -55,12 +55,12 @@ const S = StyleSheet.create({
   colPrice:     { width: 70, textAlign: 'right' },
   colTotal:     { width: 80, textAlign: 'right' },
   /* Kolumny z materiałem */
-  colLpM:       { width: 22 },
-  colNameM:     { flex: 1 },
-  colQtyM:      { width: 55, textAlign: 'right' },
-  colLabor:     { width: 65, textAlign: 'right' },
-  colMat:       { width: 65, textAlign: 'right' },
-  colTotalM:    { width: 75, textAlign: 'right' },
+colLpM:       { width: 22 },
+colNameM:     { flex: 1 },
+colQtyM:      { width: 60, textAlign: 'right' },
+colLabor:     { width: 72, textAlign: 'right' },
+colMat:       { width: 72, textAlign: 'right' },
+colTotalM:    { width: 80, textAlign: 'right' },
   /* Kolumny uproszczone (hidePrices) — tylko opis + kwota */
   colLpS:       { width: 22 },
   colNameS:     { flex: 1 },
@@ -165,9 +165,9 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc, hi
                 <Text style={[S.tableHeadTxt, S.colLpS]}>Lp.</Text>
                 <Text style={[S.tableHeadTxt, S.colNameS]}>Zakres prac</Text>
               </View>
-              {quoteItems.map((item, i) => (
-                <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowAlt : {}]}>
-                  <Text style={[S.tableCell, S.colLpS, { color: C.gray500, fontSize: 9 }]}>{i + 1}</Text>
+             {quoteItems.map((item, i) => (
+  <View key={i} wrap={false} style={[S.tableRow, i % 2 === 1 ? S.tableRowAlt : {}]}>
+    <Text style={[S.tableCell, S.colLpS, { color: C.gray500, fontSize: 9 }]}>{i + 1}</Text>
                   <View style={S.colNameS}>
                     <Text style={S.tableCell}>{item.name}</Text>
                   </View>
@@ -185,15 +185,21 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc, hi
                 <Text style={[S.tableHeadTxt, S.colTotalM]}>Wartość</Text>
               </View>
               {quoteItems.map((item, i) => (
-                <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowAlt : {}]}>
-                  <Text style={[S.tableCell, S.colLpM, { color: C.gray500, fontSize: 9 }]}>{i + 1}</Text>
+  <View key={i} wrap={false} style={[S.tableRow, i % 2 === 1 ? S.tableRowAlt : {}]}>
+    <Text style={[S.tableCell, S.colLpM, { color: C.gray500, fontSize: 9 }]}>{i + 1}</Text>
                   <View style={S.colNameM}>
                     <Text style={S.tableCell}>{item.name}</Text>
                     <Text style={S.tableCellSm}>{item.isFlat ? 'ryczałt' : item.unit}</Text>
                   </View>
                   <Text style={[S.tableCell, S.colQtyM]}>{item.isFlat ? '—' : `${fmtN(item.qty)} ${item.unit}`}</Text>
-                  <Text style={[S.tableCell, S.colLabor]}>{fmtN(item.price)} zł{!item.isFlat ? `/${item.unit}` : ''}</Text>
-                  <Text style={[S.tableCell, S.colMat]}>{item.hasMaterial ? `${fmtN(item.materialPrice)} zł${!item.isFlat ? `/${item.unit}` : ''}` : '—'}</Text>
+                 <View style={S.colLabor}>
+  <Text style={S.tableCell}>{fmtN(item.price)} zł</Text>
+  {!item.isFlat && <Text style={S.tableCellSm}>/{item.unit}</Text>}
+</View>
+<View style={S.colMat}>
+  <Text style={S.tableCell}>{item.hasMaterial ? `${fmtN(item.materialPrice)} zł` : '—'}</Text>
+  {item.hasMaterial && !item.isFlat && <Text style={S.tableCellSm}>/{item.unit}</Text>}
+</View>
                   <Text style={[S.tableCell, S.tableBold, S.colTotalM]}>{fmt(getRowTotal(item))}</Text>
                 </View>
               ))}
@@ -208,7 +214,7 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc, hi
                 <Text style={[S.tableHeadTxt, S.colTotal]}>Wartość</Text>
               </View>
               {quoteItems.map((item, i) => (
-                <View key={i} style={[S.tableRow, i % 2 === 1 ? S.tableRowAlt : {}]}>
+                <View key={i} wrap={false} style={[S.tableRow, i % 2 === 1 ? S.tableRowAlt : {}]}>
                   <Text style={[S.tableCell, S.colLp, { color: C.gray500, fontSize: 9 }]}>{i + 1}</Text>
                   <View style={S.colName}>
                     <Text style={S.tableCell}>{item.name}</Text>
