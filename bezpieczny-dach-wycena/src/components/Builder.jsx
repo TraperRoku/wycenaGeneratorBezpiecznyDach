@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useStore } from '../store'
 
 const fmt = (n) => Number(n).toFixed(2)
@@ -8,20 +7,7 @@ const GRAY_300     = '#C9C8C3'
 const GRAY_500     = '#888880'
 const BLUE         = '#2563eb'
 const BLUE_LIGHT   = '#eff6ff'
-const GREEN        = '#16a34a'
-const GREEN_LIGHT  = '#f0fdf4'
 const RED          = '#dc2626'
-const RED_LIGHT    = '#fef2f2'
-
-// ── Zysk z jednej pozycji (bez VAT, przed rabatem) ──────────────────────────
-const getItemProfit = (item) => {
-  const qty        = item.isFlat ? 1 : (parseFloat(item.qty) || 0)
-  const priceRob   = parseFloat(item.price)        || 0
-  const priceMat   = item.hasMaterial ? (parseFloat(item.materialPrice) || 0) : 0
-  const costRob    = parseFloat(item.laborCost)    || 0
-  const costMat    = item.hasMaterial ? (parseFloat(item.materialCost)  || 0) : 0
-  return ((priceRob + priceMat) - (costRob + costMat)) * qty
-}
 
 export default function Builder({ onGoPreview }) {
   const {
@@ -30,9 +16,7 @@ export default function Builder({ onGoPreview }) {
     setNotes, setDiscount, setHidePrices, setHideTotals, clearQuote, getCalc, saveQuote,
   } = useStore()
 
-  const [showCosts, setShowCosts] = useState(false)
-
-  const { net, discountAmt, netAfterDiscount, vat, vatRate, gross } = getCalc()
+  const { net, discountAmt, netAfterDiscount, vat, vatRate, gross, laborNet, matNet } = getCalc()
   const anyMaterial = quoteItems.some((it) => it.hasMaterial)
 
   const getRowTotal = (item) => {
@@ -40,14 +24,6 @@ export default function Builder({ onGoPreview }) {
     const mat   = item.hasMaterial ? (parseFloat(item.materialPrice) || 0) : 0
     return item.isFlat ? labor + mat : (labor + mat) * (parseFloat(item.qty) || 0)
   }
-
-  // ── Kalkulacja zysku ────────────────────────────────────────────────────────
-  const totalProfit     = quoteItems.reduce((acc, it) => acc + getItemProfit(it), 0)
-  const totalCosts      = net - totalProfit
-  const profitAfterDisc = totalProfit - discountAmt   // rabat zjada zysk
-  const marginPct       = netAfterDiscount > 0
-    ? (profitAfterDisc / netAfterDiscount) * 100
-    : 0
 
   return (
     <div className="main-panel">
@@ -63,16 +39,6 @@ export default function Builder({ onGoPreview }) {
         <div className="panel-actions">
           {quoteItems.length > 0 && (
             <>
-              {/* Toggle kosztów własnych */}
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowCosts((v) => !v)}
-                style={showCosts ? {
-                  borderColor: GREEN, color: GREEN, background: GREEN_LIGHT,
-                } : {}}
-              >
-                {showCosts ? '💼 Ukryj koszty' : '💼 Koszty własne'}
-              </button>
               <button className="btn btn-secondary" onClick={() => {
                 saveQuote()
                 alert('✓ Wycena zapisana w historii')
@@ -116,10 +82,9 @@ export default function Builder({ onGoPreview }) {
             {hidePrices ? '← Pokaż szczegóły' : 'Ukryj ceny jedn. →'}
           </button>
         </div>
-      
       )}
 
-      {/* Toggle: ukryj podsumowanie (wartość łączna brutto) */}
+      {/* Toggle: ukryj podsumowanie */}
       {quoteItems.length > 0 && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -295,161 +260,6 @@ export default function Builder({ onGoPreview }) {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════════════
-          SEKCJA KOSZTÓW WŁASNYCH — widoczna tylko w Kreatorze
-          Nie trafia do PDF ani do wyceny klienta
-      ══════════════════════════════════════════════════════════════ */}
-      {showCosts && quoteItems.length > 0 && (
-        <div style={{
-          background: 'white',
-          borderRadius: 10,
-          border: `2px solid ${GREEN}`,
-          overflow: 'hidden',
-        }}>
-          {/* Nagłówek sekcji */}
-          <div style={{
-            background: GREEN_LIGHT,
-            padding: '10px 16px',
-            borderBottom: `1px solid #bbf7d0`,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <div>
-              <span style={{ fontWeight: 800, fontSize: 13, color: GREEN }}>
-                💼 Koszty własne — tylko dla Ciebie
-              </span>
-              <span style={{ fontSize: 11, color: '#15803d', marginLeft: 10 }}>
-                Nie widoczne w PDF ani wycenie klienta
-              </span>
-            </div>
-            <span style={{ fontSize: 11, color: '#15803d' }}>
-              Podaj koszt realny → zobaczysz zysk na każdej pozycji
-            </span>
-          </div>
-
-          {/* Nagłówek tabeli */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 120px 120px 90px 90px',
-            gap: 8, padding: '8px 16px',
-            background: '#f0fdf4',
-            borderBottom: '1px solid #bbf7d0',
-          }}>
-            {['Pozycja', 'Koszt rob. / jedn.', 'Koszt mat. / jedn.', 'Koszty łącznie', 'Zysk'].map((h, i) => (
-              <div key={i} style={{
-                fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-                letterSpacing: 0.7, color: '#15803d',
-                textAlign: i >= 3 ? 'right' : 'left',
-              }}>{h}</div>
-            ))}
-          </div>
-
-          {/* Wiersze */}
-          {quoteItems.map((item, idx) => {
-            const qty      = item.isFlat ? 1 : (parseFloat(item.qty) || 0)
-            const costRob  = parseFloat(item.laborCost)   || 0
-            const costMat  = item.hasMaterial ? (parseFloat(item.materialCost) || 0) : 0
-            const totalCostRow = (costRob + costMat) * qty
-            const profit   = getItemProfit(item)
-            const isPos    = profit >= 0
-
-            return (
-              <div key={idx} style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 120px 120px 90px 90px',
-                gap: 8, padding: '9px 16px',
-                borderBottom: '1px solid #f0fdf4',
-                alignItems: 'center',
-                background: idx % 2 === 0 ? 'white' : '#fafffe',
-              }}>
-                {/* Nazwa */}
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#1a1a18' }}>{item.name}</div>
-                  <div style={{ fontSize: 10, color: GRAY_500 }}>
-                    {item.isFlat ? 'ryczałt' : `${fmt(parseFloat(item.qty) || 0)} ${item.unit}`}
-                  </div>
-                </div>
-
-                {/* Koszt robocizny */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <input
-                    type="number" min="0" step="0.5"
-                    value={item.laborCost}
-                    onChange={(e) => updateQuoteItem(idx, 'laborCost', e.target.value)}
-                    style={{
-                      textAlign: 'right', padding: '5px 6px', fontSize: 12,
-                      fontWeight: 600, width: '100%',
-                      border: '1px solid #bbf7d0', borderRadius: 6,
-                      background: '#f0fdf4',
-                    }}
-                  />
-                  <span style={{ fontSize: 10, color: GRAY_500 }}>zł</span>
-                </div>
-
-                {/* Koszt materiału */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <input
-                    type="number" min="0" step="0.5"
-                    value={item.materialCost}
-                    disabled={!item.hasMaterial}
-                    onChange={(e) => updateQuoteItem(idx, 'materialCost', e.target.value)}
-                    style={{
-                      textAlign: 'right', padding: '5px 6px', fontSize: 12,
-                      fontWeight: 600, width: '100%',
-                      border: item.hasMaterial ? '1px solid #bbf7d0' : '1px solid #E0DFDB',
-                      borderRadius: 6,
-                      background: item.hasMaterial ? '#f0fdf4' : '#f5f5f4',
-                      opacity: item.hasMaterial ? 1 : 0.4,
-                      cursor: item.hasMaterial ? 'text' : 'not-allowed',
-                    }}
-                  />
-                  <span style={{ fontSize: 10, color: GRAY_500, opacity: item.hasMaterial ? 1 : 0.4 }}>zł</span>
-                </div>
-
-                {/* Koszty łącznie */}
-                <div style={{ textAlign: 'right', fontSize: 12, fontWeight: 700, color: RED }}>
-                  {fmt(totalCostRow)} zł
-                </div>
-
-                {/* Zysk */}
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{
-                    fontSize: 13, fontWeight: 800,
-                    color: isPos ? GREEN : RED,
-                  }}>
-                    {isPos ? '+' : ''}{fmt(profit)} zł
-                  </div>
-                  {/* mini marża per pozycja */}
-                  {getRowTotal(item) > 0 && (
-                    <div style={{ fontSize: 10, color: isPos ? '#15803d' : RED, marginTop: 1 }}>
-                      {fmt((profit / getRowTotal(item)) * 100)}%
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-
-          {/* Podsumowanie kosztów */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 120px 120px 90px 90px',
-            gap: 8, padding: '10px 16px',
-            background: GREEN_LIGHT,
-            borderTop: `1px solid #bbf7d0`,
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: GREEN }}>SUMA KOSZTÓW</div>
-            <div />
-            <div />
-            <div style={{ textAlign: 'right', fontSize: 12, fontWeight: 800, color: RED }}>
-              {fmt(totalCosts)} zł
-            </div>
-            <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 800, color: totalProfit >= 0 ? GREEN : RED }}>
-              {totalProfit >= 0 ? '+' : ''}{fmt(totalProfit)} zł
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Uwagi ── */}
       <div className="notes-section">
         <label className="input-label">Uwagi / warunki płatności / termin realizacji</label>
@@ -466,6 +276,62 @@ export default function Builder({ onGoPreview }) {
               onChange={(e) => setDiscount(e.target.value)} />
             <span>%</span>
           </div>
+
+          {/* ── Rozbicie: robocizna / materiały ── zawsze widoczne */}
+          <div style={{
+            background: '#FAFAF9',
+            borderBottom: '2px solid var(--gray-200)',
+          }}>
+            <div style={{
+              padding: '7px 16px 4px',
+              fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: 0.8, color: GRAY_500,
+            }}>
+              Struktura netto
+            </div>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr',
+              padding: '6px 16px 12px', gap: 8,
+            }}>
+              {/* Robocizna */}
+              <div style={{
+                background: 'white', border: '1px solid #E0DFDB',
+                borderRadius: 8, padding: '10px 14px',
+              }}>
+                <div style={{ fontSize: 10, color: GRAY_500, marginBottom: 4 }}>🔨 Robocizna netto</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: ORANGE }}>
+                  {fmt(laborNet)} zł
+                </div>
+                {net > 0 && (
+                  <div style={{ fontSize: 11, color: GRAY_500, marginTop: 2 }}>
+                    {fmt((laborNet / net) * 100)}% wartości
+                  </div>
+                )}
+              </div>
+              {/* Materiały */}
+              <div style={{
+                background: 'white', border: `1px solid ${matNet > 0 ? '#fdd8b8' : '#E0DFDB'}`,
+                borderRadius: 8, padding: '10px 14px',
+                opacity: matNet > 0 ? 1 : 0.5,
+              }}>
+                <div style={{ fontSize: 10, color: GRAY_500, marginBottom: 4 }}>🧱 Materiały netto</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: matNet > 0 ? ORANGE : GRAY_500 }}>
+                  {fmt(matNet)} zł
+                </div>
+                {net > 0 && matNet > 0 && (
+                  <div style={{ fontSize: 11, color: GRAY_500, marginTop: 2 }}>
+                    {fmt((matNet / net) * 100)}% wartości
+                  </div>
+                )}
+                {matNet === 0 && (
+                  <div style={{ fontSize: 11, color: GRAY_500, marginTop: 2 }}>
+                    brak pozycji z mat.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="summary-row-item">
             <span className="summary-row-label">Wartość netto</span>
             <span className="summary-row-val">{fmt(net)} zł</span>
@@ -490,55 +356,6 @@ export default function Builder({ onGoPreview }) {
             <span>ŁĄCZNIE BRUTTO</span>
             <span>{fmt(gross)} zł</span>
           </div>
-
-          {/* ── Blok zysku — tylko gdy showCosts === true ── */}
-          {showCosts && (
-            <>
-              <div style={{
-                padding: '8px 16px',
-                background: '#fafffe',
-                borderTop: `2px solid ${GREEN}`,
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: GREEN }}>
-                  💼 ANALIZA ZYSKU (tylko dla Ciebie)
-                </span>
-              </div>
-              <div className="summary-row-item" style={{ background: '#fafffe' }}>
-                <span className="summary-row-label">Koszty własne (netto)</span>
-                <span className="summary-row-val" style={{ color: RED }}>
-                  {fmt(totalCosts)} zł
-                </span>
-              </div>
-              <div className="summary-row-item" style={{ background: '#fafffe' }}>
-                <span className="summary-row-label">
-                  Zysk netto{discount > 0 ? ' (po rabacie)' : ''}
-                </span>
-                <span className="summary-row-val" style={{
-                  color: profitAfterDisc >= 0 ? GREEN : RED, fontSize: 14,
-                }}>
-                  {profitAfterDisc >= 0 ? '+' : ''}{fmt(profitAfterDisc)} zł
-                </span>
-              </div>
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '12px 16px',
-                background: profitAfterDisc >= 0 ? GREEN_LIGHT : RED_LIGHT,
-                borderTop: `1px solid ${profitAfterDisc >= 0 ? '#bbf7d0' : '#fecaca'}`,
-              }}>
-                <span style={{
-                  fontWeight: 800, fontSize: 14,
-                  color: profitAfterDisc >= 0 ? GREEN : RED,
-                }}>MARŻA</span>
-                <span style={{
-                  fontWeight: 800, fontSize: 20,
-                  color: profitAfterDisc >= 0 ? GREEN : RED,
-                }}>
-                  {fmt(marginPct)}%
-                </span>
-              </div>
-            </>
-          )}
         </div>
       )}
     </div>

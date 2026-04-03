@@ -60,9 +60,6 @@ export const useStore = create(
               qty: 1, price: svc.price,
               hasMaterial: false, materialPrice: 0,
               isFlat: false,
-              // ── koszty własne (tylko do podglądu, nie trafiają do PDF) ──
-              laborCost: 0,
-              materialCost: 0,
             },
           ],
         })
@@ -91,17 +88,25 @@ export const useStore = create(
 
       getCalc: () => {
         const { quoteItems, client, discount } = get()
-        const net = quoteItems.reduce((acc, it) => {
+
+        const laborNet = quoteItems.reduce((acc, it) => {
           const labor = parseFloat(it.price) || 0
-          const mat   = it.hasMaterial ? (parseFloat(it.materialPrice) || 0) : 0
-          return acc + (it.isFlat ? labor + mat : (labor + mat) * (parseFloat(it.qty) || 0))
+          return acc + (it.isFlat ? labor : labor * (parseFloat(it.qty) || 0))
         }, 0)
+
+        const matNet = quoteItems.reduce((acc, it) => {
+          if (!it.hasMaterial) return acc
+          const mat = parseFloat(it.materialPrice) || 0
+          return acc + (it.isFlat ? mat : mat * (parseFloat(it.qty) || 0))
+        }, 0)
+
+        const net              = laborNet + matNet
         const discountAmt      = (net * discount) / 100
         const netAfterDiscount = net - discountAmt
         const vatRate          = client.vatRate != null && client.vatRate !== '' ? parseFloat(client.vatRate) : 23
         const vat              = (netAfterDiscount * vatRate) / 100
         const gross            = netAfterDiscount + vat
-        return { net, discountAmt, netAfterDiscount, vat, vatRate, gross }
+        return { net, laborNet, matNet, discountAmt, netAfterDiscount, vat, vatRate, gross }
       },
 
       // ─── Historia wycen ───────────────────────────────────────────
