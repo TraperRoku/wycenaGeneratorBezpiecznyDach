@@ -7,13 +7,10 @@ import dayjs from 'dayjs'
 const fmt = (n) => Number(n).toFixed(2)
 
 export default function Preview({ onBack }) {
-  const { quoteItems, client, notes, discount, hidePrices, getCalc } = useStore()
+  const { quoteItems, client, notes, discount, hidePrices, hideTotals, getCalc } = useStore()
   const calc = getCalc()
   const { gross } = calc
   const [showPDF, setShowPDF] = useState(false)
-
-  const today   = dayjs().format('DD.MM.YYYY')
-  const validTo = dayjs().add(parseInt(client.validDays) || 30, 'day').format('DD.MM.YYYY')
 
   useEffect(() => {
     const t = setTimeout(() => setShowPDF(true), 300)
@@ -22,7 +19,7 @@ export default function Preview({ onBack }) {
 
   const fileName = `Wycena_${(client.name || 'klient').replace(/\s+/g, '_')}_${client.quoteNum || dayjs().format('MMYYYY')}.pdf`
 
-  const pdfProps = { quoteItems, client, notes, discount, calc, hidePrices }
+  const pdfProps = { quoteItems, client, notes, discount, calc, hidePrices, hideTotals }
 
   return (
     <div className="preview-panel">

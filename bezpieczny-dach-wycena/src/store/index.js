@@ -38,12 +38,14 @@ export const useStore = create(
       notes: '',
       discount: 0,
       hidePrices: false,
+      hideTotals: false,
 
       setClient: (field, val) =>
         set((s) => ({ client: { ...s.client, [field]: val } })),
       setNotes: (val) => set({ notes: val }),
       setDiscount: (val) => set({ discount: parseFloat(val) || 0 }),
       setHidePrices: (val) => set({ hidePrices: val }),
+      setHideTotals: (val) => set({ hideTotals: val }),
 
       addToQuote: (serviceId) => {
         const { services, quoteItems } = get()
@@ -58,6 +60,9 @@ export const useStore = create(
               qty: 1, price: svc.price,
               hasMaterial: false, materialPrice: 0,
               isFlat: false,
+              // ── koszty własne (tylko do podglądu, nie trafiają do PDF) ──
+              laborCost: 0,
+              materialCost: 0,
             },
           ],
         })
@@ -77,7 +82,7 @@ export const useStore = create(
 
       clearQuote: () =>
         set({
-          quoteItems: [], notes: '', discount: 0, hidePrices: false,
+          quoteItems: [], notes: '', discount: 0, hidePrices: false, hideTotals: false,
           client: {
             name: '', address: '', phone: '', email: '', area: '',
             quoteNum: freshQuoteNum(), validDays: 30, vatRate: 23,
@@ -103,7 +108,7 @@ export const useStore = create(
       savedQuotes: [],
 
       saveQuote: (folderOverride) => {
-        const { quoteItems, client, notes, discount, hidePrices, getCalc } = get()
+        const { quoteItems, client, notes, discount, hidePrices, hideTotals, getCalc } = get()
         const calc  = getCalc()
         const now   = dayjs()
         const folder = folderOverride || now.format('YYYY/MM')
@@ -117,7 +122,7 @@ export const useStore = create(
               quoteNum:   client.quoteNum || '',
               clientName: client.name     || '(bez nazwy)',
               gross:      calc.gross,
-              snapshot:   { quoteItems, client, notes, discount, hidePrices },
+              snapshot:   { quoteItems, client, notes, discount, hidePrices, hideTotals },
             },
             ...s.savedQuotes,
           ],
@@ -129,8 +134,8 @@ export const useStore = create(
         const { savedQuotes } = get()
         const q = savedQuotes.find((q) => q.id === id)
         if (!q) return
-        const { quoteItems, client, notes, discount, hidePrices } = q.snapshot
-        set({ quoteItems, client, notes, discount, hidePrices })
+        const { quoteItems, client, notes, discount, hidePrices, hideTotals } = q.snapshot
+        set({ quoteItems, client, notes, discount, hidePrices, hideTotals: hideTotals || false })
       },
 
       moveQuote: (id, folder) => {
@@ -148,20 +153,19 @@ export const useStore = create(
       },
     }),
     {
-  name: 'bezpieczny-dach-store-v5',
-  version: 1,
-  migrate: (persistedState, version) => {
-    if (version < 1) return {}   // stary zapis → wyczyść
-    return persistedState
-  },
-  merge: (persistedState, currentState) => ({
-    ...currentState,
-    ...persistedState,
-    // services z localStorage (zawiera twoje usługi) lub fallback na DEFAULT
-    services: persistedState?.services?.length
-      ? persistedState.services
-      : currentState.services,
-  }),
-}
+      name: 'bezpieczny-dach-store-v5',
+      version: 1,
+      migrate: (persistedState, version) => {
+        if (version < 1) return {}
+        return persistedState
+      },
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...persistedState,
+        services: persistedState?.services?.length
+          ? persistedState.services
+          : currentState.services,
+      }),
+    }
   )
 )
