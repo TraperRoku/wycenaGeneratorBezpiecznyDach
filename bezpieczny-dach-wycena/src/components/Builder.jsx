@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { useStore } from '../store'
 
 const fmt = (n) => Number(n).toFixed(2)
@@ -12,9 +13,12 @@ const RED          = '#dc2626'
 export default function Builder({ onGoPreview }) {
   const {
     quoteItems, notes, discount, hidePrices, hideTotals,
-    updateQuoteItem, removeFromQuote,
+    updateQuoteItem, removeFromQuote, reorderQuoteItems,
     setNotes, setDiscount, setHidePrices, setHideTotals, clearQuote, getCalc, saveQuote,
   } = useStore()
+
+  const dragIdx     = useRef(null)
+  const dragOverIdx = useRef(null)
 
   const { net, discountAmt, netAfterDiscount, vat, vatRate, gross, laborNet, matNet } = getCalc()
   const anyMaterial = quoteItems.some((it) => it.hasMaterial)
@@ -132,12 +136,14 @@ export default function Builder({ onGoPreview }) {
 
       {/* ── Tabela wyceny ── */}
       <div className="quote-table-wrap">
+        {/* Nagłówek — dodana kolumna 18px na uchwyt */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 85px 110px 110px 85px 110px 36px',
+          gridTemplateColumns: '18px 1fr 85px 110px 110px 85px 110px 36px',
           gap: 6, padding: '10px 14px',
           background: '#FFF8F4', borderBottom: '1px solid #E0DFDB',
         }}>
+          <div />
           <div className="qth">Usługa / opis</div>
           <div className="qth right">Ilość</div>
           <div className="qth right">Robocizna</div>
@@ -158,13 +164,44 @@ export default function Builder({ onGoPreview }) {
             quoteItems.map((item, idx) => {
               const rowBg = item.isFlat ? BLUE_LIGHT : item.hasMaterial ? '#FFFAF6' : 'white'
               return (
-                <div key={idx} style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 90px 120px 120px 90px 120px 36px',
-                  gap: 14, padding: '10px 14px',
-                  borderBottom: '1px solid #F0EFEC',
-                  alignItems: 'center', background: rowBg, transition: 'background 0.15s',
-                }}>
+                <div
+                  key={idx}
+                  draggable
+                  onDragStart={() => { dragIdx.current = idx }}
+                  onDragEnter={() => { dragOverIdx.current = idx }}
+                  onDragEnd={() => {
+                    if (
+                      dragIdx.current !== null &&
+                      dragOverIdx.current !== null &&
+                      dragIdx.current !== dragOverIdx.current
+                    ) {
+                      reorderQuoteItems(dragIdx.current, dragOverIdx.current)
+                    }
+                    dragIdx.current = null
+                    dragOverIdx.current = null
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '18px 1fr 90px 120px 120px 90px 120px 36px',
+                    gap: 14, padding: '10px 14px',
+                    borderBottom: '1px solid #F0EFEC',
+                    alignItems: 'center', background: rowBg,
+                    transition: 'background 0.15s',
+                    cursor: 'default',
+                  }}
+                >
+                  {/* ── Uchwyt drag ── */}
+                  <div
+                    style={{
+                      color: GRAY_300, fontSize: 16, cursor: 'grab',
+                      userSelect: 'none', textAlign: 'center', lineHeight: 1,
+                    }}
+                    title="Przeciągnij aby zmienić kolejność"
+                  >
+                    ⠿
+                  </div>
+
                   <div>
                     <div className="item-name">{item.name}</div>
                     <div className="item-unit">
@@ -277,11 +314,7 @@ export default function Builder({ onGoPreview }) {
             <span>%</span>
           </div>
 
-          {/* ── Rozbicie: robocizna / materiały ── zawsze widoczne */}
-          <div style={{
-            background: '#FAFAF9',
-            borderBottom: '2px solid var(--gray-200)',
-          }}>
+          <div style={{ background: '#FAFAF9', borderBottom: '2px solid var(--gray-200)' }}>
             <div style={{
               padding: '7px 16px 4px',
               fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
@@ -293,40 +326,28 @@ export default function Builder({ onGoPreview }) {
               display: 'grid', gridTemplateColumns: '1fr 1fr',
               padding: '6px 16px 12px', gap: 8,
             }}>
-              {/* Robocizna */}
-              <div style={{
-                background: 'white', border: '1px solid #E0DFDB',
-                borderRadius: 8, padding: '10px 14px',
-              }}>
+              <div style={{ background: 'white', border: '1px solid #E0DFDB', borderRadius: 8, padding: '10px 14px' }}>
                 <div style={{ fontSize: 10, color: GRAY_500, marginBottom: 4 }}>🔨 Robocizna netto</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: ORANGE }}>
-                  {fmt(laborNet)} zł
-                </div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: ORANGE }}>{fmt(laborNet)} zł</div>
                 {net > 0 && (
                   <div style={{ fontSize: 11, color: GRAY_500, marginTop: 2 }}>
                     {fmt((laborNet / net) * 100)}% wartości
                   </div>
                 )}
               </div>
-              {/* Materiały */}
               <div style={{
                 background: 'white', border: `1px solid ${matNet > 0 ? '#fdd8b8' : '#E0DFDB'}`,
-                borderRadius: 8, padding: '10px 14px',
-                opacity: matNet > 0 ? 1 : 0.5,
+                borderRadius: 8, padding: '10px 14px', opacity: matNet > 0 ? 1 : 0.5,
               }}>
                 <div style={{ fontSize: 10, color: GRAY_500, marginBottom: 4 }}>🧱 Materiały netto</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: matNet > 0 ? ORANGE : GRAY_500 }}>
-                  {fmt(matNet)} zł
-                </div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: matNet > 0 ? ORANGE : GRAY_500 }}>{fmt(matNet)} zł</div>
                 {net > 0 && matNet > 0 && (
                   <div style={{ fontSize: 11, color: GRAY_500, marginTop: 2 }}>
                     {fmt((matNet / net) * 100)}% wartości
                   </div>
                 )}
                 {matNet === 0 && (
-                  <div style={{ fontSize: 11, color: GRAY_500, marginTop: 2 }}>
-                    brak pozycji z mat.
-                  </div>
+                  <div style={{ fontSize: 11, color: GRAY_500, marginTop: 2 }}>brak pozycji z mat.</div>
                 )}
               </div>
             </div>

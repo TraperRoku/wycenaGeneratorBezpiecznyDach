@@ -68,6 +68,14 @@ export const useStore = create(
       removeFromQuote: (idx) =>
         set((s) => ({ quoteItems: s.quoteItems.filter((_, i) => i !== idx) })),
 
+      reorderQuoteItems: (fromIdx, toIdx) =>
+  set((s) => {
+    const items = [...s.quoteItems]
+    const [moved] = items.splice(fromIdx, 1)
+    items.splice(toIdx, 0, moved)
+    return { quoteItems: items }
+  }),
+
       updateQuoteItem: (idx, field, val) =>
         set((s) => ({
           quoteItems: s.quoteItems.map((it, i) => {
