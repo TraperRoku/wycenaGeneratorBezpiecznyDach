@@ -160,8 +160,9 @@ const SimpleRow = ({ item, i }) => (
   </View>
 )
 
-export default function QuotePDF({ quoteItems, client, notes, discount, calc, hidePrices, hideTotals }) {
-  const { net, discountAmt, netAfterDiscount, vat, vatRate, gross } = calc
+export default function QuotePDF({ quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals }) {
+  const { net, vat, vatRate, gross, doZaplaty } = calc
+  const zaliczkaAmt = parseFloat(zaliczka) || 0
 
   const anyMaterial = quoteItems.some((it) => it.hasMaterial)
   const tableMode   = hidePrices ? 'simple' : anyMaterial ? 'material' : 'normal'
@@ -256,33 +257,31 @@ export default function QuotePDF({ quoteItems, client, notes, discount, calc, hi
 
           {/* ── PODSUMOWANIE — ukryte gdy hideTotals ── */}
           {!hideTotals && (
-            <View style={S.totalWrap}>
-              <View style={S.totalRow}>
-                <Text style={S.totalLabel}>Wartość netto</Text>
-                <Text style={S.totalVal}>{fmt(net)}</Text>
-              </View>
-              {discount > 0 && (
-                <>
-                  <View style={S.totalRow}>
-                    <Text style={S.totalLabel}>Rabat ({discount}%)</Text>
-                    <Text style={[S.totalVal, { color: '#dc2626' }]}>− {fmt(discountAmt)}</Text>
-                  </View>
-                  <View style={S.totalRow}>
-                    <Text style={S.totalLabel}>Netto po rabacie</Text>
-                    <Text style={S.totalVal}>{fmt(netAfterDiscount)}</Text>
-                  </View>
-                </>
-              )}
-              <View style={S.totalRow}>
-                <Text style={S.totalLabel}>VAT ({vatRate}%)</Text>
-                <Text style={S.totalVal}>{fmt(vat)}</Text>
-              </View>
-              <View style={S.totalMain}>
-                <Text style={S.totalMainTxt}>ŁĄCZNIE BRUTTO</Text>
-                <Text style={S.totalMainTxt}>{fmt(gross)}</Text>
-              </View>
-            </View>
-          )}
+  <View style={S.totalWrap}>
+    <View style={S.totalRow}>
+      <Text style={S.totalLabel}>Wartość netto</Text>
+      <Text style={S.totalVal}>{fmt(net)}</Text>
+    </View>
+    <View style={S.totalRow}>
+      <Text style={S.totalLabel}>VAT ({vatRate}%)</Text>
+      <Text style={S.totalVal}>{fmt(vat)}</Text>
+    </View>
+    <View style={S.totalRow}>
+      <Text style={S.totalLabel}>Łącznie brutto</Text>
+      <Text style={S.totalVal}>{fmt(gross)}</Text>
+    </View>
+    {zaliczkaAmt > 0 && (
+      <View style={S.totalRow}>
+        <Text style={S.totalLabel}>Zaliczka wpłacona</Text>
+        <Text style={[S.totalVal, { color: '#dc2626' }]}>− {fmt(zaliczkaAmt)}</Text>
+      </View>
+    )}
+    <View style={S.totalMain}>
+      <Text style={S.totalMainTxt}>DO ZAPŁATY</Text>
+      <Text style={S.totalMainTxt}>{fmt(doZaplaty)}</Text>
+    </View>
+  </View>
+)}
 
           {/* ── UWAGI — wrap=false żeby nie rozrywało na 2 strony ── */}
           {notes ? (

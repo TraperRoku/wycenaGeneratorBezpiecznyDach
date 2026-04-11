@@ -36,14 +36,14 @@ export const useStore = create(
         quoteNum: freshQuoteNum(), validDays: 30, vatRate: 23,
       },
       notes: '',
-      discount: 0,
+      zaliczka: 0,
       hidePrices: false,
       hideTotals: false,
 
       setClient: (field, val) =>
         set((s) => ({ client: { ...s.client, [field]: val } })),
       setNotes: (val) => set({ notes: val }),
-      setDiscount: (val) => set({ discount: parseFloat(val) || 0 }),
+   setZaliczka: (val) => set({ zaliczka: parseFloat(val) || 0 }),
       setHidePrices: (val) => set({ hidePrices: val }),
       setHideTotals: (val) => set({ hideTotals: val }),
 
@@ -87,7 +87,7 @@ export const useStore = create(
 
       clearQuote: () =>
         set({
-          quoteItems: [], notes: '', discount: 0, hidePrices: false, hideTotals: false,
+          quoteItems: [], notes: '', zaliczka: 0, hidePrices: false, hideTotals: false,
           client: {
             name: '', address: '', phone: '', email: '', area: '',
             quoteNum: freshQuoteNum(), validDays: 30, vatRate: 23,
@@ -95,33 +95,32 @@ export const useStore = create(
         }),
 
       getCalc: () => {
-        const { quoteItems, client, discount } = get()
+  const { quoteItems, client, zaliczka } = get()
 
-        const laborNet = quoteItems.reduce((acc, it) => {
-          const labor = parseFloat(it.price) || 0
-          return acc + (it.isFlat ? labor : labor * (parseFloat(it.qty) || 0))
-        }, 0)
+  const laborNet = quoteItems.reduce((acc, it) => {
+    const labor = parseFloat(it.price) || 0
+    return acc + (it.isFlat ? labor : labor * (parseFloat(it.qty) || 0))
+  }, 0)
 
-        const matNet = quoteItems.reduce((acc, it) => {
-          if (!it.hasMaterial) return acc
-          const mat = parseFloat(it.materialPrice) || 0
-          return acc + (it.isFlat ? mat : mat * (parseFloat(it.qty) || 0))
-        }, 0)
+  const matNet = quoteItems.reduce((acc, it) => {
+    if (!it.hasMaterial) return acc
+    const mat = parseFloat(it.materialPrice) || 0
+    return acc + (it.isFlat ? mat : mat * (parseFloat(it.qty) || 0))
+  }, 0)
 
-        const net              = laborNet + matNet
-        const discountAmt      = (net * discount) / 100
-        const netAfterDiscount = net - discountAmt
-        const vatRate          = client.vatRate != null && client.vatRate !== '' ? parseFloat(client.vatRate) : 23
-        const vat              = (netAfterDiscount * vatRate) / 100
-        const gross            = netAfterDiscount + vat
-        return { net, laborNet, matNet, discountAmt, netAfterDiscount, vat, vatRate, gross }
-      },
+  const net      = laborNet + matNet
+  const vatRate  = client.vatRate != null && client.vatRate !== '' ? parseFloat(client.vatRate) : 23
+  const vat      = (net * vatRate) / 100
+  const gross    = net + vat
+  const doZaplaty = Math.max(0, gross - (parseFloat(zaliczka) || 0))
+  return { net, laborNet, matNet, vat, vatRate, gross, zaliczka: parseFloat(zaliczka) || 0, doZaplaty }
+},
 
       // ─── Historia wycen ───────────────────────────────────────────
       savedQuotes: [],
 
       saveQuote: (folderOverride) => {
-        const { quoteItems, client, notes, discount, hidePrices, hideTotals, getCalc } = get()
+        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, getCalc } = get()
         const calc  = getCalc()
         const now   = dayjs()
         const folder = folderOverride || now.format('YYYY/MM')
@@ -147,8 +146,8 @@ export const useStore = create(
         const { savedQuotes } = get()
         const q = savedQuotes.find((q) => q.id === id)
         if (!q) return
-        const { quoteItems, client, notes, discount, hidePrices, hideTotals } = q.snapshot
-        set({ quoteItems, client, notes, discount, hidePrices, hideTotals: hideTotals || false })
+        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals } = q.snapshot
+        set({ quoteItems, client, notes, zaliczka, hidePrices, hideTotals: hideTotals || false })
       },
 
       moveQuote: (id, folder) => {

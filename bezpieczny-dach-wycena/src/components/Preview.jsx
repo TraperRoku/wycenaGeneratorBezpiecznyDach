@@ -7,7 +7,7 @@ import dayjs from 'dayjs'
 const fmt = (n) => Number(n).toFixed(2)
 
 export default function Preview({ onBack }) {
-  const { quoteItems, client, notes, discount, hidePrices, hideTotals, getCalc } = useStore()
+ const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, getCalc } = useStore()
   const calc = getCalc()
   const { gross } = calc
   const [showPDF, setShowPDF] = useState(false)
@@ -19,7 +19,7 @@ export default function Preview({ onBack }) {
 
   const fileName = `Wycena_${(client.name || 'klient').replace(/\s+/g, '_')}_${client.quoteNum || dayjs().format('MMYYYY')}.pdf`
 
-  const pdfProps = { quoteItems, client, notes, discount, calc, hidePrices, hideTotals }
+const pdfProps = { quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals }
 
   return (
     <div className="preview-panel">
