@@ -134,7 +134,7 @@ export const useStore = create(
               quoteNum:   client.quoteNum || '',
               clientName: client.name     || '(bez nazwy)',
               gross:      calc.gross,
-              snapshot:   { quoteItems, client, notes, discount, hidePrices, hideTotals },
+              snapshot:   { quoteItems, client, notes, zaliczka, hidePrices, hideTotals },
             },
             ...s.savedQuotes,
           ],
