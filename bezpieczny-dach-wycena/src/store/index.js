@@ -76,12 +76,12 @@ export const useStore = create(
     return { quoteItems: items }
   }),
 
-      updateQuoteItem: (idx, field, val) =>
+    updateQuoteItem: (idx, field, val) =>
         set((s) => ({
           quoteItems: s.quoteItems.map((it, i) => {
             if (i !== idx) return it
             if (field === 'hasMaterial' || field === 'isFlat') return { ...it, [field]: val }
-            return { ...it, [field]: parseFloat(val) || 0 }
+            return { ...it, [field]: val } 
           }),
         })),
 
