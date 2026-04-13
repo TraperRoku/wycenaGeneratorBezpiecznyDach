@@ -314,9 +314,26 @@ const {
     </div>
 
     {/* Struktura netto — bez zmian */}
-    <div style={{ background: '#FAFAF9', borderBottom: '2px solid var(--gray-200)' }}>
-      {/* ...ten sam blok robocizna/materiały co był... */}
+    {/* Struktura netto z rozbiciem na robociznę i materiały */}
+<div style={{ 
+  background: '#FAFAF9', 
+  borderBottom: '2px solid #E0DFDB', 
+  padding: '12px',
+  borderRadius: '8px 8px 0 0',
+  marginBottom: '8px'
+}}>
+  <div className="summary-row-item" style={{ fontSize: '13px', opacity: 0.8 }}>
+    <span className="summary-row-label">Suma robocizny (netto)</span>
+    <span className="summary-row-val">{fmt(laborNet)} zł</span>
+  </div>
+  
+  {anyMaterial && (
+    <div className="summary-row-item" style={{ fontSize: '13px', opacity: 0.8, marginTop: '4px' }}>
+      <span className="summary-row-label">Suma materiałów (netto)</span>
+      <span className="summary-row-val">{fmt(matNet)} zł</span>
     </div>
+  )}
+</div>
 
     <div className="summary-row-item">
       <span className="summary-row-label">Wartość netto</span>
