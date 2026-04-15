@@ -14,7 +14,7 @@ export default function Builder({ onGoPreview }) {
 const {
   quoteItems, notes, zaliczka, hidePrices, hideTotals,
   updateQuoteItem, removeFromQuote, reorderQuoteItems,
-  setNotes, setZaliczka, setHidePrices, setHideTotals, clearQuote, getCalc, saveQuote,
+  setNotes, setZaliczka, setHidePrices, setHideTotals, clearQuote, getCalc, saveQuote, hideFooter, setHideFooter,
 } = useStore()
 
   const dragIdx     = useRef(null)
@@ -119,6 +119,30 @@ const {
             }}
           >
             {hideTotals ? '← Pokaż podsumowanie' : 'Ukryj podsumowanie →'}
+          </button>
+        </div>
+      )}
+
+      {quoteItems.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 16px', background: hideFooter ? '#fef2f2' : '#f9fafb',
+          border: `1px solid ${hideFooter ? '#fecaca' : '#e5e7eb'}`,
+          borderRadius: 8, gap: 12, marginTop: 8
+        }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 13, color: hideFooter ? '#dc2626' : GRAY_500 }}>
+              {hideFooter ? '🚫 PDF: bez stopki na dole' : '📄 PDF: pokazuje stopkę na każdej stronie'}
+            </div>
+          </div>
+          <button onClick={() => setHideFooter(!hideFooter)}
+            style={{
+              padding: '7px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+              cursor: 'pointer', border: `2px solid ${hideFooter ? '#dc2626' : GRAY_300}`,
+              background: hideFooter ? '#dc2626' : 'white', color: hideFooter ? 'white' : GRAY_500,
+              fontFamily: 'inherit'
+            }}>
+            {hideFooter ? '← Pokaż stopkę' : 'Ukryj stopkę →'}
           </button>
         </div>
       )}

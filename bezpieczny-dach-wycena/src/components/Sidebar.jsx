@@ -1,5 +1,5 @@
 import { useStore } from '../store'
-
+import { useState } from 'react'
 const CLIENT_FIELDS = [
   { key: 'name',      label: 'Klient / firma',      placeholder: 'Jan Kowalski lub XYZ Sp. z o.o.' },
   { key: 'address',   label: 'Adres / miasto',       placeholder: 'ul. Przykładowa 1, Szczecin'     },
@@ -11,6 +11,12 @@ const CLIENT_FIELDS = [
 
 export default function Sidebar({ onAddService }) {
   const { services, quoteItems, client, setClient, addToQuote } = useStore()
+  const [search, setSearch] = useState('')
+
+  const filteredServices = services.filter(s => 
+    s.name.toLowerCase().includes(search.toLowerCase()) || 
+    s.cat.toLowerCase().includes(search.toLowerCase())
+  )
 
   const cats = [...new Set(services.map((s) => s.cat))]
   const inQuoteIds = new Set(quoteItems.map((i) => i.sid))
@@ -52,6 +58,16 @@ export default function Sidebar({ onAddService }) {
           <div className="sec-label" style={{ marginBottom: 0 }}>Kliknij → dodaj do wyceny</div>
           <button className="btn btn-sm btn-secondary" onClick={onAddService}>+ Nowa</button>
         </div>
+
+        <input 
+          type="text" 
+          placeholder="🔍 Szukaj usługi..." 
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ marginBottom: 15 }}
+        />
+
+        {cats.length === 0 && <div style={{fontSize: 12, color: '#888'}}>Brak wyników...</div>}
 
         {cats.map((cat) => (
           <div className="cat-block" key={cat}>

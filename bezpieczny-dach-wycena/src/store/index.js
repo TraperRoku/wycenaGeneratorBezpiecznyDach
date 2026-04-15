@@ -13,11 +13,19 @@ export const useStore = create(
     (set, get) => ({
       services: DEFAULT_SERVICES,
 
-      addService: (svc) =>
+
+      hideFooter: false,
+      setHideFooter: (val) => set({ hideFooter: val }),
+
+      addService: (svc) => {
+        let newId;
         set((s) => {
           const maxId = s.services.reduce((m, sv) => Math.max(m, sv.id), 0)
-          return { services: [...s.services, { ...svc, id: maxId + 1 }] }
-        }),
+          newId = maxId + 1
+          return { services: [...s.services, { ...svc, id: newId }] }
+        })
+        return newId; 
+      },
 
       updateService: (id, data) =>
         set((s) => ({
@@ -87,7 +95,7 @@ export const useStore = create(
 
       clearQuote: () =>
         set({
-          quoteItems: [], notes: '', zaliczka: 0, hidePrices: false, hideTotals: false,
+          quoteItems: [], notes: '', zaliczka: 0, hidePrices: false, hideTotals: false, hideFooter: false, // <-- dodane resetowanie
           client: {
             name: '', address: '', phone: '', email: '', area: '',
             quoteNum: freshQuoteNum(), validDays: 30, vatRate: 23,
@@ -119,8 +127,9 @@ export const useStore = create(
       // ─── Historia wycen ───────────────────────────────────────────
       savedQuotes: [],
 
-      saveQuote: (folderOverride) => {
-        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, getCalc } = get()
+     saveQuote: (folderOverride) => {
+        // dodane hideFooter do dekonstrukcji
+        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, getCalc } = get() 
         const calc  = getCalc()
         const now   = dayjs()
         const folder = folderOverride || now.format('YYYY/MM')
@@ -134,7 +143,8 @@ export const useStore = create(
               quoteNum:   client.quoteNum || '',
               clientName: client.name     || '(bez nazwy)',
               gross:      calc.gross,
-              snapshot:   { quoteItems, client, notes, zaliczka, hidePrices, hideTotals },
+              // dodane hideFooter do zapisu
+              snapshot:   { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter }, 
             },
             ...s.savedQuotes,
           ],
@@ -142,14 +152,22 @@ export const useStore = create(
         return id
       },
 
-      loadQuote: (id) => {
+     loadQuote: (id) => {
         const { savedQuotes } = get()
         const q = savedQuotes.find((q) => q.id === id)
         if (!q) return
-        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals } = q.snapshot
-        set({ quoteItems, client, notes, zaliczka, hidePrices, hideTotals: hideTotals || false })
+        // dodane hideFooter
+        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter } = q.snapshot
+        set({ 
+          quoteItems, 
+          client, 
+          notes, 
+          zaliczka, 
+          hidePrices, 
+          hideTotals: hideTotals || false, 
+          hideFooter: hideFooter || false // <-- ustawienie przywracanego stanu
+        })
       },
-
       moveQuote: (id, folder) => {
         if (!folder.trim()) return
         set((s) => ({

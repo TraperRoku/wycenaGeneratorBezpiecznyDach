@@ -160,7 +160,7 @@ const SimpleRow = ({ item, i }) => (
   </View>
 )
 
-export default function QuotePDF({ quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals }) {
+export default function QuotePDF({ quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals , hideFooter }) {
   const { net, vat, vatRate, gross, doZaplaty } = calc
   const zaliczkaAmt = parseFloat(zaliczka) || 0
 
@@ -256,8 +256,8 @@ export default function QuotePDF({ quoteItems, client, notes, zaliczka, calc, hi
           )}
 
           {/* ── PODSUMOWANIE — ukryte gdy hideTotals ── */}
-          {!hideTotals && (
-  <View style={S.totalWrap}>
+      {!hideTotals && (
+  <View style={S.totalWrap} wrap={false}>
     <View style={S.totalRow}>
       <Text style={S.totalLabel}>Wartość netto</Text>
       <Text style={S.totalVal}>{fmt(net)}</Text>
@@ -293,12 +293,14 @@ export default function QuotePDF({ quoteItems, client, notes, zaliczka, calc, hi
         </View>
 
         {/* ── STOPKA ── */}
-        <View style={S.footer} fixed>
-          <View style={S.footerRight}>
-            <Text style={S.footerBrand}>BEZPIECZNY DACH</Text>
-            <Text style={S.footerDetail}>tel. 518 144 882  ·  bezpiecznydach.pl</Text>
+     {!hideFooter && (
+          <View style={S.footer} fixed>
+            <View style={S.footerRight}>
+              <Text style={S.footerBrand}>BEZPIECZNY DACH</Text>
+              <Text style={S.footerDetail}>tel. 518 144 882  ·  bezpiecznydach.pl</Text>
+            </View>
           </View>
-        </View>
+        )}
       </Page>
     </Document>
   )

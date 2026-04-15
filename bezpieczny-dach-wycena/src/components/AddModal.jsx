@@ -4,7 +4,7 @@ import { useStore } from '../store'
 const UNITS = ['m²', 'mb', 'szt.', 'komplet', 'godz.', 'kpl.']
 
 export default function AddModal({ service, onClose }) {
-  const { addService, updateService, services } = useStore()
+  const { addService, updateService, services, addToQuote } = useStore()
   const cats = [...new Set(services.map((s) => s.cat))]
 
   const [form, setForm] = useState({
@@ -41,7 +41,8 @@ export default function AddModal({ service, onClose }) {
     if (service) {
       updateService(service.id, data)
     } else {
-      addService(data)
+      const newId = addService(data) // Pobieramy ID nowej usługi
+      addToQuote(newId) // Automatycznie dodajemy ją do wyceny
     }
     onClose()
   }
