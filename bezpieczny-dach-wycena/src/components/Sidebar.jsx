@@ -18,7 +18,7 @@ export default function Sidebar({ onAddService }) {
     s.cat.toLowerCase().includes(search.toLowerCase())
   )
 
-  const cats = [...new Set(services.map((s) => s.cat))]
+ const cats = [...new Set(filteredServices.map((s) => s.cat))]
   const inQuoteIds = new Set(quoteItems.map((i) => i.sid))
 
   return (
@@ -72,7 +72,7 @@ export default function Sidebar({ onAddService }) {
         {cats.map((cat) => (
           <div className="cat-block" key={cat}>
             <div className="cat-title">{cat}</div>
-            {services
+            {filteredServices
               .filter((s) => s.cat === cat)
               .map((s) => {
                 const added = inQuoteIds.has(s.id)

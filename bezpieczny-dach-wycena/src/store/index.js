@@ -13,7 +13,6 @@ export const useStore = create(
     (set, get) => ({
       services: DEFAULT_SERVICES,
 
-
       hideFooter: false,
       setHideFooter: (val) => set({ hideFooter: val }),
 
@@ -24,7 +23,7 @@ export const useStore = create(
           newId = maxId + 1
           return { services: [...s.services, { ...svc, id: newId }] }
         })
-        return newId; 
+        return newId;
       },
 
       updateService: (id, data) =>
@@ -47,13 +46,15 @@ export const useStore = create(
       zaliczka: 0,
       hidePrices: false,
       hideTotals: false,
+      pdfFontSize: 'normal', // 'small' | 'normal' | 'large'
 
       setClient: (field, val) =>
         set((s) => ({ client: { ...s.client, [field]: val } })),
       setNotes: (val) => set({ notes: val }),
-   setZaliczka: (val) => set({ zaliczka: parseFloat(val) || 0 }),
+      setZaliczka: (val) => set({ zaliczka: parseFloat(val) || 0 }),
       setHidePrices: (val) => set({ hidePrices: val }),
       setHideTotals: (val) => set({ hideTotals: val }),
+      setPdfFontSize: (val) => set({ pdfFontSize: val }),
 
       addToQuote: (serviceId) => {
         const { services, quoteItems } = get()
@@ -77,25 +78,26 @@ export const useStore = create(
         set((s) => ({ quoteItems: s.quoteItems.filter((_, i) => i !== idx) })),
 
       reorderQuoteItems: (fromIdx, toIdx) =>
-  set((s) => {
-    const items = [...s.quoteItems]
-    const [moved] = items.splice(fromIdx, 1)
-    items.splice(toIdx, 0, moved)
-    return { quoteItems: items }
-  }),
+        set((s) => {
+          const items = [...s.quoteItems]
+          const [moved] = items.splice(fromIdx, 1)
+          items.splice(toIdx, 0, moved)
+          return { quoteItems: items }
+        }),
 
-    updateQuoteItem: (idx, field, val) =>
+      updateQuoteItem: (idx, field, val) =>
         set((s) => ({
           quoteItems: s.quoteItems.map((it, i) => {
             if (i !== idx) return it
-            if (field === 'hasMaterial' || field === 'isFlat') return { ...it, [field]: val }
-            return { ...it, [field]: val } 
+            return { ...it, [field]: val }
           }),
         })),
 
       clearQuote: () =>
         set({
-          quoteItems: [], notes: '', zaliczka: 0, hidePrices: false, hideTotals: false, hideFooter: false, // <-- dodane resetowanie
+          quoteItems: [], notes: '', zaliczka: 0,
+          hidePrices: false, hideTotals: false, hideFooter: false,
+          pdfFontSize: 'normal',
           client: {
             name: '', address: '', phone: '', email: '', area: '',
             quoteNum: freshQuoteNum(), validDays: 30, vatRate: 23,
@@ -103,33 +105,32 @@ export const useStore = create(
         }),
 
       getCalc: () => {
-  const { quoteItems, client, zaliczka } = get()
+        const { quoteItems, client, zaliczka } = get()
 
-  const laborNet = quoteItems.reduce((acc, it) => {
-    const labor = parseFloat(it.price) || 0
-    return acc + (it.isFlat ? labor : labor * (parseFloat(it.qty) || 0))
-  }, 0)
+        const laborNet = quoteItems.reduce((acc, it) => {
+          const labor = parseFloat(it.price) || 0
+          return acc + (it.isFlat ? labor : labor * (parseFloat(it.qty) || 0))
+        }, 0)
 
-  const matNet = quoteItems.reduce((acc, it) => {
-    if (!it.hasMaterial) return acc
-    const mat = parseFloat(it.materialPrice) || 0
-    return acc + (it.isFlat ? mat : mat * (parseFloat(it.qty) || 0))
-  }, 0)
+        const matNet = quoteItems.reduce((acc, it) => {
+          if (!it.hasMaterial) return acc
+          const mat = parseFloat(it.materialPrice) || 0
+          return acc + (it.isFlat ? mat : mat * (parseFloat(it.qty) || 0))
+        }, 0)
 
-  const net      = laborNet + matNet
-  const vatRate  = client.vatRate != null && client.vatRate !== '' ? parseFloat(client.vatRate) : 23
-  const vat      = (net * vatRate) / 100
-  const gross    = net + vat
-  const doZaplaty = Math.max(0, gross - (parseFloat(zaliczka) || 0))
-  return { net, laborNet, matNet, vat, vatRate, gross, zaliczka: parseFloat(zaliczka) || 0, doZaplaty }
-},
+        const net      = laborNet + matNet
+        const vatRate  = client.vatRate != null && client.vatRate !== '' ? parseFloat(client.vatRate) : 23
+        const vat      = (net * vatRate) / 100
+        const gross    = net + vat
+        const doZaplaty = Math.max(0, gross - (parseFloat(zaliczka) || 0))
+        return { net, laborNet, matNet, vat, vatRate, gross, zaliczka: parseFloat(zaliczka) || 0, doZaplaty }
+      },
 
       // ─── Historia wycen ───────────────────────────────────────────
       savedQuotes: [],
 
-     saveQuote: (folderOverride) => {
-        // dodane hideFooter do dekonstrukcji
-        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, getCalc } = get() 
+      saveQuote: (folderOverride) => {
+        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, pdfFontSize, getCalc } = get()
         const calc  = getCalc()
         const now   = dayjs()
         const folder = folderOverride || now.format('YYYY/MM')
@@ -143,8 +144,7 @@ export const useStore = create(
               quoteNum:   client.quoteNum || '',
               clientName: client.name     || '(bez nazwy)',
               gross:      calc.gross,
-              // dodane hideFooter do zapisu
-              snapshot:   { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter }, 
+              snapshot:   { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, pdfFontSize },
             },
             ...s.savedQuotes,
           ],
@@ -152,22 +152,23 @@ export const useStore = create(
         return id
       },
 
-     loadQuote: (id) => {
+      loadQuote: (id) => {
         const { savedQuotes } = get()
         const q = savedQuotes.find((q) => q.id === id)
         if (!q) return
-        // dodane hideFooter
-        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter } = q.snapshot
-        set({ 
-          quoteItems, 
-          client, 
-          notes, 
-          zaliczka, 
-          hidePrices, 
-          hideTotals: hideTotals || false, 
-          hideFooter: hideFooter || false // <-- ustawienie przywracanego stanu
+        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, pdfFontSize } = q.snapshot
+        set({
+          quoteItems,
+          client,
+          notes,
+          zaliczka,
+          hidePrices,
+          hideTotals: hideTotals || false,
+          hideFooter: hideFooter || false,
+          pdfFontSize: pdfFontSize || 'normal',
         })
       },
+
       moveQuote: (id, folder) => {
         if (!folder.trim()) return
         set((s) => ({

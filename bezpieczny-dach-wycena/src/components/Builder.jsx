@@ -10,11 +10,19 @@ const BLUE         = '#2563eb'
 const BLUE_LIGHT   = '#eff6ff'
 const RED          = '#dc2626'
 
+const FONT_OPTIONS = [
+  { value: 'small',  label: 'Mała',    icon: 'A', desc: 'Więcej na stronie' },
+  { value: 'normal', label: 'Normalna', icon: 'A', desc: 'Domyślna' },
+  { value: 'large',  label: 'Duża',    icon: 'A', desc: 'Czytelniejsza' },
+]
+
 export default function Builder({ onGoPreview }) {
 const {
   quoteItems, notes, zaliczka, hidePrices, hideTotals,
   updateQuoteItem, removeFromQuote, reorderQuoteItems,
-  setNotes, setZaliczka, setHidePrices, setHideTotals, clearQuote, getCalc, saveQuote, hideFooter, setHideFooter,
+  setNotes, setZaliczka, setHidePrices, setHideTotals, clearQuote, getCalc, saveQuote,
+  hideFooter, setHideFooter,
+  pdfFontSize, setPdfFontSize,
 } = useStore()
 
   const dragIdx     = useRef(null)
@@ -54,113 +62,121 @@ const {
         </div>
       </div>
 
-      {/* Globalny przełącznik: szczegółowy vs tylko cena łączna */}
+      {/* ── Ustawienia PDF ── */}
       {quoteItems.length > 0 && (
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 16px',
-          background: hidePrices ? BLUE_LIGHT : ORANGE_LIGHT,
-          border: `1px solid ${hidePrices ? '#bfdbfe' : '#fdd8b8'}`,
-          borderRadius: 8, gap: 12,
+          background: 'white', border: '1px solid #E0DFDB', borderRadius: 10,
+          padding: '12px 16px',
         }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: hidePrices ? BLUE : ORANGE }}>
-              {hidePrices ? '💰 PDF: tylko cena łączna' : '📋 PDF: szczegółowy (ilość × cena / jedn.)'}
-            </div>
-            <div style={{ fontSize: 11, color: GRAY_500, marginTop: 2 }}>
-              {hidePrices
-                ? 'Klient widzi tylko nazwę i kwotę — bez metrów i cen jednostkowych'
-                : 'Klient widzi ilość, cenę jednostkową i wartość każdej pozycji'}
-            </div>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.7px', color: GRAY_500, marginBottom: 10 }}>
+            Ustawienia PDF
           </div>
-          <button
-            onClick={() => setHidePrices(!hidePrices)}
-            style={{
-              padding: '7px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-              cursor: 'pointer',
-              border: `2px solid ${hidePrices ? BLUE : ORANGE}`,
-              background: hidePrices ? BLUE : ORANGE,
-              color: 'white', fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0,
-            }}
-          >
-            {hidePrices ? '← Pokaż szczegóły' : 'Ukryj ceny jedn. →'}
-          </button>
-        </div>
-      )}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
 
-      {/* Toggle: ukryj podsumowanie */}
-      {quoteItems.length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 16px',
-          background: hideTotals ? '#fdf4ff' : '#f9fafb',
-          border: `1px solid ${hideTotals ? '#e9d5ff' : '#e5e7eb'}`,
-          borderRadius: 8, gap: 12,
-        }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: hideTotals ? '#7c3aed' : GRAY_500 }}>
-              {hideTotals ? '🚫 PDF: bez podsumowania cenowego' : '💰 PDF: pokazuje wartość łączną brutto'}
+            {/* Szczegółowość */}
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: GRAY_500, marginBottom: 5 }}>Widoczność cen</div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[
+                  { val: false, label: '📋 Szczegółowy' },
+                  { val: true,  label: '💰 Tylko kwota' },
+                ].map(o => (
+                  <button key={String(o.val)} onClick={() => setHidePrices(o.val)}
+                    style={{
+                      padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1.5px solid ${hidePrices === o.val ? ORANGE : GRAY_300}`,
+                      background: hidePrices === o.val ? ORANGE : 'white',
+                      color: hidePrices === o.val ? 'white' : GRAY_500,
+                    }}
+                  >{o.label}</button>
+                ))}
+              </div>
             </div>
-            <div style={{ fontSize: 11, color: GRAY_500, marginTop: 2 }}>
-              {hideTotals
-                ? 'Klient widzi tylko ceny jednostkowe — bez netto, VAT i brutto razem'
-                : 'Klient widzi pełne podsumowanie: netto, VAT, brutto'}
-            </div>
-          </div>
-          <button
-            onClick={() => setHideTotals(!hideTotals)}
-            style={{
-              padding: '7px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-              cursor: 'pointer',
-              border: `2px solid ${hideTotals ? '#7c3aed' : GRAY_300}`,
-              background: hideTotals ? '#7c3aed' : 'white',
-              color: hideTotals ? 'white' : GRAY_500,
-              fontFamily: 'inherit', whiteSpace: 'nowrap', flexShrink: 0,
-            }}
-          >
-            {hideTotals ? '← Pokaż podsumowanie' : 'Ukryj podsumowanie →'}
-          </button>
-        </div>
-      )}
 
-      {quoteItems.length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 16px', background: hideFooter ? '#fef2f2' : '#f9fafb',
-          border: `1px solid ${hideFooter ? '#fecaca' : '#e5e7eb'}`,
-          borderRadius: 8, gap: 12, marginTop: 8
-        }}>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: hideFooter ? '#dc2626' : GRAY_500 }}>
-              {hideFooter ? '🚫 PDF: bez stopki na dole' : '📄 PDF: pokazuje stopkę na każdej stronie'}
+            {/* Podsumowanie */}
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: GRAY_500, marginBottom: 5 }}>Podsumowanie</div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[
+                  { val: false, label: '✅ Pokaż' },
+                  { val: true,  label: '🚫 Ukryj' },
+                ].map(o => (
+                  <button key={String(o.val)} onClick={() => setHideTotals(o.val)}
+                    style={{
+                      padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1.5px solid ${hideTotals === o.val ? '#7c3aed' : GRAY_300}`,
+                      background: hideTotals === o.val ? '#7c3aed' : 'white',
+                      color: hideTotals === o.val ? 'white' : GRAY_500,
+                    }}
+                  >{o.label}</button>
+                ))}
+              </div>
             </div>
+
+            {/* Stopka */}
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: GRAY_500, marginBottom: 5 }}>Stopka</div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[
+                  { val: false, label: '✅ Pokaż' },
+                  { val: true,  label: '🚫 Ukryj' },
+                ].map(o => (
+                  <button key={String(o.val)} onClick={() => setHideFooter(o.val)}
+                    style={{
+                      padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1.5px solid ${hideFooter === o.val ? RED : GRAY_300}`,
+                      background: hideFooter === o.val ? RED : 'white',
+                      color: hideFooter === o.val ? 'white' : GRAY_500,
+                    }}
+                  >{o.label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Rozmiar czcionki */}
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: GRAY_500, marginBottom: 5 }}>
+                Rozmiar czcionki PDF
+                {pdfFontSize === 'small' && <span style={{ marginLeft: 6, color: '#16a34a', fontSize: 10 }}>↑ więcej pozycji na stronie</span>}
+                {pdfFontSize === 'large' && <span style={{ marginLeft: 6, color: BLUE, fontSize: 10 }}>↑ czytelniejszy druk</span>}
+              </div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {FONT_OPTIONS.map(o => (
+                  <button key={o.value} onClick={() => setPdfFontSize(o.value)}
+                    title={o.desc}
+                    style={{
+                      padding: '5px 12px', borderRadius: 6, fontWeight: 700,
+                      fontSize: o.value === 'small' ? 10 : o.value === 'large' ? 14 : 12,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1.5px solid ${pdfFontSize === o.value ? ORANGE : GRAY_300}`,
+                      background: pdfFontSize === o.value ? ORANGE_LIGHT : 'white',
+                      color: pdfFontSize === o.value ? ORANGE : GRAY_500,
+                    }}
+                  >{o.label}</button>
+                ))}
+              </div>
+            </div>
+
           </div>
-          <button onClick={() => setHideFooter(!hideFooter)}
-            style={{
-              padding: '7px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700,
-              cursor: 'pointer', border: `2px solid ${hideFooter ? '#dc2626' : GRAY_300}`,
-              background: hideFooter ? '#dc2626' : 'white', color: hideFooter ? 'white' : GRAY_500,
-              fontFamily: 'inherit'
+
+          {anyMaterial && (
+            <div style={{
+              marginTop: 10, padding: '6px 12px', background: ORANGE_LIGHT,
+              border: '1px solid #fdd8b8', borderRadius: 6,
+              fontSize: 12, color: ORANGE, display: 'flex', alignItems: 'center', gap: 8,
             }}>
-            {hideFooter ? '← Pokaż stopkę' : 'Ukryj stopkę →'}
-          </button>
-        </div>
-      )}
-
-      {quoteItems.length > 0 && anyMaterial && (
-        <div style={{
-          padding: '7px 14px', background: ORANGE_LIGHT,
-          border: '1px solid #fdd8b8', borderRadius: 8,
-          fontSize: 12, color: ORANGE, display: 'flex', alignItems: 'center', gap: 8,
-        }}>
-          <span>🧱</span>
-          <span>Część pozycji zawiera materiał — PDF pokaże robociznę i materiał osobno</span>
+              <span>🧱</span>
+              <span>Część pozycji zawiera materiał — PDF pokaże robociznę i materiał osobno</span>
+            </div>
+          )}
         </div>
       )}
 
       {/* ── Tabela wyceny ── */}
       <div className="quote-table-wrap">
-        {/* Nagłówek — dodana kolumna 18px na uchwyt */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '18px 1fr 85px 110px 110px 85px 110px 36px',
@@ -215,16 +231,13 @@ const {
                     cursor: 'default',
                   }}
                 >
-                  {/* ── Uchwyt drag ── */}
                   <div
                     style={{
                       color: GRAY_300, fontSize: 16, cursor: 'grab',
                       userSelect: 'none', textAlign: 'center', lineHeight: 1,
                     }}
                     title="Przeciągnij aby zmienić kolejność"
-                  >
-                    ⠿
-                  </div>
+                  >⠿</div>
 
                   <div>
                     <div className="item-name">{item.name}</div>
@@ -297,9 +310,7 @@ const {
                         color: item.hasMaterial ? 'white' : GRAY_500,
                         transition: 'all 0.15s', whiteSpace: 'nowrap', fontFamily: 'inherit',
                       }}
-                    >
-                      {item.hasMaterial ? '🧱 z mat.' : 'z mat.'}
-                    </button>
+                    >{item.hasMaterial ? '🧱 z mat.' : 'z mat.'}</button>
                     <button onClick={() => updateQuoteItem(idx, 'isFlat', !item.isFlat)}
                       style={{
                         padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, cursor: 'pointer',
@@ -308,9 +319,7 @@ const {
                         color: item.isFlat ? 'white' : GRAY_500,
                         transition: 'all 0.15s', whiteSpace: 'nowrap', fontFamily: 'inherit',
                       }}
-                    >
-                      {item.isFlat ? '💰 ryczałt' : 'ryczałt'}
-                    </button>
+                    >{item.isFlat ? '💰 ryczałt' : 'ryczałt'}</button>
                   </div>
 
                   <button className="remove-btn" onClick={() => removeFromQuote(idx)}>×</button>
@@ -328,61 +337,58 @@ const {
           placeholder="np. Termin realizacji: 14 dni od podpisania umowy. Płatność: 30 dni. Gwarancja: 5 lat." />
       </div>
 
-     {quoteItems.length > 0 && (
-  <div className="summary-card">
-    <div className="discount-row">
-      <label>Zaliczka wpłacona</label>
-      <input type="number" min={0} step={100} value={zaliczka}
-        onChange={(e) => setZaliczka(e.target.value)} />
-      <span>zł</span>
-    </div>
+      {quoteItems.length > 0 && (
+        <div className="summary-card">
+          <div className="discount-row">
+            <label>Zaliczka wpłacona</label>
+            <input type="number" min={0} step={100} value={zaliczka}
+              onChange={(e) => setZaliczka(e.target.value)} />
+            <span>zł</span>
+          </div>
 
-    {/* Struktura netto — bez zmian */}
-    {/* Struktura netto z rozbiciem na robociznę i materiały */}
-<div style={{ 
-  background: '#FAFAF9', 
-  borderBottom: '2px solid #E0DFDB', 
-  padding: '12px',
-  borderRadius: '8px 8px 0 0',
-  marginBottom: '8px'
-}}>
-  <div className="summary-row-item" style={{ fontSize: '13px', opacity: 0.8 }}>
-    <span className="summary-row-label">Suma robocizny (netto)</span>
-    <span className="summary-row-val">{fmt(laborNet)} zł</span>
-  </div>
-  
-  {anyMaterial && (
-    <div className="summary-row-item" style={{ fontSize: '13px', opacity: 0.8, marginTop: '4px' }}>
-      <span className="summary-row-label">Suma materiałów (netto)</span>
-      <span className="summary-row-val">{fmt(matNet)} zł</span>
-    </div>
-  )}
-</div>
+          <div style={{
+            background: '#FAFAF9',
+            borderBottom: '2px solid #E0DFDB',
+            padding: '12px',
+            borderRadius: '8px 8px 0 0',
+            marginBottom: '8px'
+          }}>
+            <div className="summary-row-item" style={{ fontSize: '13px', opacity: 0.8 }}>
+              <span className="summary-row-label">Suma robocizny (netto)</span>
+              <span className="summary-row-val">{fmt(laborNet)} zł</span>
+            </div>
+            {anyMaterial && (
+              <div className="summary-row-item" style={{ fontSize: '13px', opacity: 0.8, marginTop: '4px' }}>
+                <span className="summary-row-label">Suma materiałów (netto)</span>
+                <span className="summary-row-val">{fmt(matNet)} zł</span>
+              </div>
+            )}
+          </div>
 
-    <div className="summary-row-item">
-      <span className="summary-row-label">Wartość netto</span>
-      <span className="summary-row-val">{fmt(net)} zł</span>
-    </div>
-    <div className="summary-row-item">
-      <span className="summary-row-label">VAT ({vatRate}%)</span>
-      <span className="summary-row-val">{fmt(vat)} zł</span>
-    </div>
-    <div className="summary-row-item">
-      <span className="summary-row-label">Łącznie brutto</span>
-      <span className="summary-row-val" style={{ fontWeight: 700 }}>{fmt(gross)} zł</span>
-    </div>
-    {zaliczkaCalc > 0 && (
-      <div className="summary-row-item">
-        <span className="summary-row-label">Zaliczka wpłacona</span>
-        <span className="summary-row-val" style={{ color: RED }}>− {fmt(zaliczkaCalc)} zł</span>
-      </div>
-    )}
-    <div className="summary-total-row">
-      <span>DO ZAPŁATY</span>
-      <span>{fmt(doZaplaty)} zł</span>
-    </div>
-  </div>
-)}
+          <div className="summary-row-item">
+            <span className="summary-row-label">Wartość netto</span>
+            <span className="summary-row-val">{fmt(net)} zł</span>
+          </div>
+          <div className="summary-row-item">
+            <span className="summary-row-label">VAT ({vatRate}%)</span>
+            <span className="summary-row-val">{fmt(vat)} zł</span>
+          </div>
+          <div className="summary-row-item">
+            <span className="summary-row-label">Łącznie brutto</span>
+            <span className="summary-row-val" style={{ fontWeight: 700 }}>{fmt(gross)} zł</span>
+          </div>
+          {zaliczkaCalc > 0 && (
+            <div className="summary-row-item">
+              <span className="summary-row-label">Zaliczka wpłacona</span>
+              <span className="summary-row-val" style={{ color: RED }}>− {fmt(zaliczkaCalc)} zł</span>
+            </div>
+          )}
+          <div className="summary-total-row">
+            <span>DO ZAPŁATY</span>
+            <span>{fmt(doZaplaty)} zł</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
