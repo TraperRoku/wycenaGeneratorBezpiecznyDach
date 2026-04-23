@@ -68,6 +68,11 @@ const S = StyleSheet.create({
   sLp:    { width: 22 },
   sName:  { flex: 1 },
 
+  qLp:    { width: 22 },
+qName:  { flex: 1, paddingRight: 6 },
+qQty:   { width: 110, textAlign: 'right' },
+qTotal: { width: 82,  textAlign: 'right' },
+
   totalWrap:    { marginTop: 10 },
   totalRow:     { flexDirection: 'row', justifyContent: 'space-between', padding: '5 10', borderBottomWidth: 0.5, borderBottomColor: C.gray100 },
   totalLabel:   { color: C.gray500 },
@@ -140,6 +145,25 @@ const SimpleRow = ({ item, i, sc }) => (
   </View>
 )
 
+
+const QtyRow = ({ item, i, sc }) => (
+  <View wrap={false} style={[
+    { flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center' },
+    i % 2 === 1 ? S.tableRowAlt : {}
+  ]}>
+    <Text style={[{ fontSize: sc.lp, color: C.gray500 }, S.qLp]}>{i + 1}</Text>
+    <View style={S.qName}>
+      <Text style={{ fontSize: sc.base, color: C.gray900 }}>{item.name}</Text>
+      <Text style={{ fontSize: sc.sub, color: C.gray500, marginTop: 1 }}>
+        {item.isFlat ? 'ryczałt' : item.unit}
+      </Text>
+    </View>
+    <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.qQty]}>
+      {item.isFlat ? '—' : `${fmtN(item.qty)} ${item.unit}`}
+    </Text>
+  </View>
+)
+
 export default function QuotePDF({ quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals, hideFooter, pdfFontSize = 'normal' }) {
   const { net, vat, vatRate, gross, doZaplaty, laborNet, matNet } = calc
   const zaliczkaAmt = parseFloat(zaliczka) || 0
@@ -149,7 +173,11 @@ export default function QuotePDF({ quoteItems, client, notes, zaliczka, calc, hi
   const bodyBottomPad = hideFooter ? 24 : 64
 
   const anyMaterial = quoteItems.some((it) => it.hasMaterial)
-  const tableMode   = hidePrices ? 'simple' : anyMaterial ? 'material' : 'normal'
+  const tableMode = hidePrices === true
+  ? 'simple'
+  : hidePrices === 'qty'
+  ? 'qty_only'
+  : anyMaterial ? 'material' : 'normal'
 
   const scopeText = anyMaterial ? 'Wycena obejmuje robociznę i materiał' : 'Wycena obejmuje wyłącznie robociznę'
   const scopeClr  = anyMaterial ? C.orange : C.green
@@ -212,6 +240,19 @@ export default function QuotePDF({ quoteItems, client, notes, zaliczka, calc, hi
               </View>
               {quoteItems.map((item, i) => <SimpleRow key={i} item={item} i={i} sc={sc} />)}
             </View>
+
+
+
+) : tableMode === 'qty_only' ? (
+  <View>
+    <View style={S.tableHead}>
+      <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 }, S.qLp]}>Lp.</Text>
+      <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 }, S.qName]}>Opis</Text>
+      <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.qQty]}>Ilość</Text>
+
+    </View>
+    {quoteItems.map((item, i) => <QtyRow key={i} item={item} i={i} sc={sc} />)}
+  </View>
 
           ) : tableMode === 'material' ? (
             <View>

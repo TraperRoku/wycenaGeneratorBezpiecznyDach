@@ -78,8 +78,9 @@ const {
               <div style={{ fontSize: 11, fontWeight: 600, color: GRAY_500, marginBottom: 5 }}>Widoczność cen</div>
               <div style={{ display: 'flex', gap: 4 }}>
                 {[
-                  { val: false, label: '📋 Szczegółowy' },
-                  { val: true,  label: '💰 Tylko kwota' },
+             { val: false,  label: '📋 Szczegółowy' },
+             { val: 'qty',  label: '📏 Ilość' },
+             { val: true,   label: '💰 Tylko kwota' },
                 ].map(o => (
                   <button key={String(o.val)} onClick={() => setHidePrices(o.val)}
                     style={{
