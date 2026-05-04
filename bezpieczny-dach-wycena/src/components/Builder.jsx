@@ -347,23 +347,28 @@ const {
             <span>zł</span>
           </div>
 
+          {/* ── Rozbicie netto — tylko dla właściciela ── */}
           <div style={{
-            background: '#FAFAF9',
-            borderBottom: '2px solid #E0DFDB',
-            padding: '12px',
-            borderRadius: '8px 8px 0 0',
-            marginBottom: '8px'
+            background: '#FFF3EB',
+            border: '1px solid #fdd8b8',
+            borderRadius: 8,
+            padding: '10px 16px',
+            margin: '8px 0',
           }}>
-            <div className="summary-row-item" style={{ fontSize: '13px', opacity: 0.8 }}>
-              <span className="summary-row-label">Suma robocizny (netto)</span>
-              <span className="summary-row-val">{fmt(laborNet)} zł</span>
+            <div style={{
+              fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+              letterSpacing: '0.7px', color: ORANGE, marginBottom: 8,
+            }}>
+              🔒 Tylko dla mnie — rozbicie netto (bez VAT)
             </div>
-            {anyMaterial && (
-              <div className="summary-row-item" style={{ fontSize: '13px', opacity: 0.8, marginTop: '4px' }}>
-                <span className="summary-row-label">Suma materiałów (netto)</span>
-                <span className="summary-row-val">{fmt(matNet)} zł</span>
-              </div>
-            )}
+            <div className="summary-row-item" style={{ fontSize: 13, borderBottom: 'none', padding: '4px 0' }}>
+              <span className="summary-row-label">🔨 Robocizna netto</span>
+              <span className="summary-row-val" style={{ color: ORANGE }}>{fmt(laborNet)} zł</span>
+            </div>
+            <div className="summary-row-item" style={{ fontSize: 13, borderBottom: 'none', padding: '4px 0' }}>
+              <span className="summary-row-label">🧱 Materiały Brutto</span>
+              <span className="summary-row-val" style={{ color: ORANGE }}>{fmt(matNet)} zł</span>
+            </div>
           </div>
 
           <div className="summary-row-item">
