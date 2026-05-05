@@ -180,8 +180,8 @@ const {
       <div className="quote-table-wrap">
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '18px 1fr 85px 110px 110px 85px 110px 36px',
-          gap: 6, padding: '10px 14px',
+          gridTemplateColumns: '18px 1fr 90px 120px 120px 90px 120px 36px',
+          gap: 14, padding: '10px 14px',
           background: '#FFF8F4', borderBottom: '1px solid #E0DFDB',
         }}>
           <div />
@@ -366,7 +366,7 @@ const {
               <span className="summary-row-val" style={{ color: ORANGE }}>{fmt(laborNet)} zł</span>
             </div>
             <div className="summary-row-item" style={{ fontSize: 13, borderBottom: 'none', padding: '4px 0' }}>
-              <span className="summary-row-label">🧱 Materiały Brutto</span>
+              <span className="summary-row-label">🧱 Materiały netto</span>
               <span className="summary-row-val" style={{ color: ORANGE }}>{fmt(matNet)} zł</span>
             </div>
           </div>
