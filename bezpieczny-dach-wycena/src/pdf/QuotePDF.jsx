@@ -69,9 +69,9 @@ const S = StyleSheet.create({
   sName:  { flex: 1 },
 
   qLp:    { width: 22 },
-qName:  { flex: 1, paddingRight: 6 },
-qQty:   { width: 110, textAlign: 'right' },
-qTotal: { width: 82,  textAlign: 'right' },
+  qName:  { flex: 1, paddingRight: 6 },
+  qQty:   { width: 110, textAlign: 'right' },
+  qTotal: { width: 82,  textAlign: 'right' },
 
   totalWrap:    { marginTop: 10 },
   totalRow:     { flexDirection: 'row', justifyContent: 'space-between', padding: '5 10', borderBottomWidth: 0.5, borderBottomColor: C.gray100 },
@@ -145,7 +145,6 @@ const SimpleRow = ({ item, i, sc }) => (
   </View>
 )
 
-
 const QtyRow = ({ item, i, sc }) => (
   <View wrap={false} style={[
     { flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center' },
@@ -164,7 +163,12 @@ const QtyRow = ({ item, i, sc }) => (
   </View>
 )
 
-export default function QuotePDF({ quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals, hideFooter, pdfFontSize = 'normal' }) {
+export default function QuotePDF({
+  quoteItems, client, notes, zaliczka, calc,
+  hidePrices, hideTotals, hideFooter,
+  pdfFontSize = 'normal',
+  documentType = 'Wycena',
+}) {
   const { net, vat, vatRate, gross, doZaplaty, laborNet, matNet } = calc
   const zaliczkaAmt = parseFloat(zaliczka) || 0
   const sc = SCALES[pdfFontSize] || SCALES.normal
@@ -174,17 +178,20 @@ export default function QuotePDF({ quoteItems, client, notes, zaliczka, calc, hi
 
   const anyMaterial = quoteItems.some((it) => it.hasMaterial)
   const tableMode = hidePrices === true
-  ? 'simple'
-  : hidePrices === 'qty'
-  ? 'qty_only'
-  : anyMaterial ? 'material' : 'normal'
+    ? 'simple'
+    : hidePrices === 'qty'
+    ? 'qty_only'
+    : anyMaterial ? 'material' : 'normal'
 
   const scopeText = anyMaterial ? 'Wycena obejmuje robociznę i materiał' : 'Wycena obejmuje wyłącznie robociznę'
   const scopeClr  = anyMaterial ? C.orange : C.green
   const scopeBg   = anyMaterial ? C.orangePale : C.greenLight
 
   return (
-    <Document title={`Wycena ${client.quoteNum || ''} — ${client.name || 'Klient'}`} author="Bezpieczny Dach">
+    <Document
+      title={`${documentType} ${client.quoteNum || ''} — ${client.name || 'Klient'}`}
+      author="Bezpieczny Dach"
+    >
       <Page size="A4" style={S.page}>
 
         {/* ── NAGŁÓWEK ── */}
@@ -197,7 +204,7 @@ export default function QuotePDF({ quoteItems, client, notes, zaliczka, calc, hi
             <Text style={S.compTag}>Usługi dekarskie · Dachy płaskie · Szczecin & Goleniów</Text>
           </View>
           <View style={S.docRight}>
-            <Text style={S.docType}>WYCENA</Text>
+            <Text style={S.docType}>{documentType.toUpperCase()}</Text>
             <Text style={S.docNum}>{client.quoteNum || 'WYC/2025/001'}</Text>
           </View>
         </View>
@@ -241,18 +248,15 @@ export default function QuotePDF({ quoteItems, client, notes, zaliczka, calc, hi
               {quoteItems.map((item, i) => <SimpleRow key={i} item={item} i={i} sc={sc} />)}
             </View>
 
-
-
-) : tableMode === 'qty_only' ? (
-  <View>
-    <View style={S.tableHead}>
-      <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 }, S.qLp]}>Lp.</Text>
-      <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 }, S.qName]}>Opis</Text>
-      <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.qQty]}>Ilość</Text>
-
-    </View>
-    {quoteItems.map((item, i) => <QtyRow key={i} item={item} i={i} sc={sc} />)}
-  </View>
+          ) : tableMode === 'qty_only' ? (
+            <View>
+              <View style={S.tableHead}>
+                <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 }, S.qLp]}>Lp.</Text>
+                <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 }, S.qName]}>Opis</Text>
+                <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.qQty]}>Ilość</Text>
+              </View>
+              {quoteItems.map((item, i) => <QtyRow key={i} item={item} i={i} sc={sc} />)}
+            </View>
 
           ) : tableMode === 'material' ? (
             <View>

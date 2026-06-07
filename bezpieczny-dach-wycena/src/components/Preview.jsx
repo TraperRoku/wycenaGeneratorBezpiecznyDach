@@ -12,8 +12,20 @@ const FONT_OPTIONS = [
   { value: 'large',  label: 'A',  title: 'Duża czcionka (czytelniejsza)' },
 ]
 
+const DOC_TYPES = [
+  { value: 'Wycena',    label: 'Wycena' },
+  { value: 'Kosztorys', label: 'Kosztorys' },
+]
+
 export default function Preview({ onBack }) {
-  const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, pdfFontSize, setPdfFontSize, getCalc } = useStore()
+  const {
+    quoteItems, client, notes, zaliczka,
+    hidePrices, hideTotals, hideFooter,
+    pdfFontSize, setPdfFontSize,
+    documentType, setDocumentType,
+    getCalc,
+  } = useStore()
+
   const calc = getCalc()
   const { gross } = calc
   const [showPDF, setShowPDF] = useState(false)
@@ -23,17 +35,17 @@ export default function Preview({ onBack }) {
     return () => clearTimeout(t)
   }, [])
 
-  // Przeładuj PDF po zmianie ustawień
+  // Przeładuj PDF po zmianie ustawień (w tym typu dokumentu)
   useEffect(() => {
     setShowPDF(false)
     const t = setTimeout(() => setShowPDF(true), 200)
     return () => clearTimeout(t)
-  }, [hidePrices, hideTotals, hideFooter, pdfFontSize])
+  }, [hidePrices, hideTotals, hideFooter, pdfFontSize, documentType])
 
-  const fileName = `Wycena_${(client.name || 'klient').replace(/\s+/g, '_')}_${client.quoteNum || dayjs().format('MMYYYY')}.pdf`
-  const pdfProps = { quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals, hideFooter, pdfFontSize }
+  const fileName = `${documentType}_${(client.name || 'klient').replace(/\s+/g, '_')}_${client.quoteNum || dayjs().format('MMYYYY')}.pdf`
+  const pdfProps = { quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals, hideFooter, pdfFontSize, documentType }
 
-  const ORANGE  = '#E85D04'
+  const ORANGE   = '#E85D04'
   const GRAY_300 = '#C9C8C3'
   const GRAY_500 = '#888880'
 
@@ -41,14 +53,38 @@ export default function Preview({ onBack }) {
     <div className="preview-panel">
       <div className="preview-toolbar">
         <div>
-          <div style={{ fontWeight: 700, fontSize: 15 }}>Podgląd wyceny PDF</div>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>Podgląd {documentType} PDF</div>
           {client.name && (
             <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 2 }}>
               {client.name} · {client.quoteNum} · {fmt(gross)} zł brutto
             </div>
           )}
         </div>
+
         <div className="flex-row" style={{ gap: 12 }}>
+
+          {/* Typ dokumentu */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 11, color: GRAY_500, fontWeight: 600 }}>Typ:</span>
+            <div style={{ display: 'flex', gap: 0, background: '#f5f5f4', borderRadius: 8, padding: 3 }}>
+              {DOC_TYPES.map((o) => (
+                <button
+                  key={o.value}
+                  onClick={() => setDocumentType(o.value)}
+                  title={o.value}
+                  style={{
+                    padding: '4px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                    fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+                    background: documentType === o.value ? ORANGE : 'transparent',
+                    color: documentType === o.value ? 'white' : GRAY_500,
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Rozmiar czcionki */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

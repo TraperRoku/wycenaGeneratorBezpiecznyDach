@@ -47,6 +47,7 @@ export const useStore = create(
       hidePrices: false,
       hideTotals: false,
       pdfFontSize: 'normal', // 'small' | 'normal' | 'large'
+      documentType: 'Wycena', // 'Wycena' | 'Kosztorys'
 
       setClient: (field, val) =>
         set((s) => ({ client: { ...s.client, [field]: val } })),
@@ -55,6 +56,7 @@ export const useStore = create(
       setHidePrices: (val) => set({ hidePrices: val }),
       setHideTotals: (val) => set({ hideTotals: val }),
       setPdfFontSize: (val) => set({ pdfFontSize: val }),
+      setDocumentType: (val) => set({ documentType: val }),
 
       addToQuote: (serviceId) => {
         const { services, quoteItems } = get()
@@ -98,6 +100,7 @@ export const useStore = create(
           quoteItems: [], notes: '', zaliczka: 0,
           hidePrices: false, hideTotals: false, hideFooter: false,
           pdfFontSize: 'normal',
+          documentType: 'Wycena',
           client: {
             name: '', address: '', phone: '', email: '', area: '',
             quoteNum: freshQuoteNum(), validDays: 30, vatRate: 23,
@@ -130,7 +133,7 @@ export const useStore = create(
       savedQuotes: [],
 
       saveQuote: (folderOverride) => {
-        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, pdfFontSize, getCalc } = get()
+        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, pdfFontSize, documentType, getCalc } = get()
         const calc  = getCalc()
         const now   = dayjs()
         const folder = folderOverride || now.format('YYYY/MM')
@@ -144,7 +147,7 @@ export const useStore = create(
               quoteNum:   client.quoteNum || '',
               clientName: client.name     || '(bez nazwy)',
               gross:      calc.gross,
-              snapshot:   { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, pdfFontSize },
+              snapshot:   { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, pdfFontSize, documentType },
             },
             ...s.savedQuotes,
           ],
@@ -156,7 +159,7 @@ export const useStore = create(
         const { savedQuotes } = get()
         const q = savedQuotes.find((q) => q.id === id)
         if (!q) return
-        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, pdfFontSize } = q.snapshot
+        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, pdfFontSize, documentType } = q.snapshot
         set({
           quoteItems,
           client,
@@ -166,6 +169,7 @@ export const useStore = create(
           hideTotals: hideTotals || false,
           hideFooter: hideFooter || false,
           pdfFontSize: pdfFontSize || 'normal',
+          documentType: documentType || 'Wycena',
         })
       },
 
