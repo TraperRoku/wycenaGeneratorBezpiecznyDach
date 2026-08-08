@@ -21,13 +21,15 @@ export default function Preview({ onBack }) {
   const {
     quoteItems, client, notes, zaliczka,
     hidePrices, hideTotals, hideFooter,
+    summaryMode,
     pdfFontSize, setPdfFontSize,
     documentType, setDocumentType,
     getCalc,
   } = useStore()
 
   const calc = getCalc()
-  const { gross } = calc
+  const { net, gross } = calc
+  const displayTotal = summaryMode === 'netto' ? net : gross
   const [showPDF, setShowPDF] = useState(false)
 
   useEffect(() => {
@@ -40,10 +42,10 @@ export default function Preview({ onBack }) {
     setShowPDF(false)
     const t = setTimeout(() => setShowPDF(true), 200)
     return () => clearTimeout(t)
-  }, [hidePrices, hideTotals, hideFooter, pdfFontSize, documentType])
+  }, [hidePrices, hideTotals, hideFooter, summaryMode, pdfFontSize, documentType])
 
   const fileName = `${documentType}_${(client.name || 'klient').replace(/\s+/g, '_')}_${client.quoteNum || dayjs().format('MMYYYY')}.pdf`
-  const pdfProps = { quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals, hideFooter, pdfFontSize, documentType }
+  const pdfProps = { quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals, hideFooter, summaryMode, pdfFontSize, documentType }
 
   const ORANGE   = '#E85D04'
   const GRAY_300 = '#C9C8C3'
@@ -56,7 +58,7 @@ export default function Preview({ onBack }) {
           <div style={{ fontWeight: 700, fontSize: 15 }}>Podgląd {documentType} PDF</div>
           {client.name && (
             <div style={{ fontSize: 12, color: 'var(--gray-500)', marginTop: 2 }}>
-              {client.name} · {client.quoteNum} · {fmt(gross)} zł brutto
+              {client.name} · {client.quoteNum} · {fmt(displayTotal)} zł {summaryMode}
             </div>
           )}
         </div>

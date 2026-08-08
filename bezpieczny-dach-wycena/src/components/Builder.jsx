@@ -22,6 +22,7 @@ const {
   updateQuoteItem, removeFromQuote, reorderQuoteItems,
   setNotes, setZaliczka, setHidePrices, setHideTotals, clearQuote, getCalc, saveQuote,
   hideFooter, setHideFooter,
+  summaryMode, setSummaryMode,
   pdfFontSize, setPdfFontSize,
 } = useStore()
 
@@ -44,7 +45,7 @@ const {
           <div className="panel-title">Kreator wyceny</div>
           <div className="panel-subtitle">
             {quoteItems.length
-              ? `${quoteItems.length} pozycji · ${fmt(gross)} zł brutto`
+              ? `${quoteItems.length} pozycji · ${fmt(summaryMode === 'netto' ? net : gross)} zł ${summaryMode}`
               : 'Kliknij usługi z panelu po lewej'}
           </div>
         </div>
@@ -115,6 +116,29 @@ const {
                 ))}
               </div>
             </div>
+
+            {/* Wartość w podsumowaniu: netto / brutto */}
+            {!hideTotals && (
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: GRAY_500, marginBottom: 5 }}>Kwota w podsumowaniu</div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {[
+                    { val: 'brutto', label: 'Brutto' },
+                    { val: 'netto',  label: 'Netto' },
+                  ].map(o => (
+                    <button key={o.val} onClick={() => setSummaryMode(o.val)}
+                      style={{
+                        padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                        cursor: 'pointer', fontFamily: 'inherit',
+                        border: `1.5px solid ${summaryMode === o.val ? '#0d9488' : GRAY_300}`,
+                        background: summaryMode === o.val ? '#0d9488' : 'white',
+                        color: summaryMode === o.val ? 'white' : GRAY_500,
+                      }}
+                    >{o.label}</button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Stopka */}
             <div style={{ flex: 1, minWidth: 160 }}>

@@ -166,12 +166,18 @@ const QtyRow = ({ item, i, sc }) => (
 export default function QuotePDF({
   quoteItems, client, notes, zaliczka, calc,
   hidePrices, hideTotals, hideFooter,
+  summaryMode = 'brutto',
   pdfFontSize = 'normal',
   documentType = 'Wycena',
 }) {
   const { net, vat, vatRate, gross, doZaplaty, laborNet, matNet } = calc
   const zaliczkaAmt = parseFloat(zaliczka) || 0
   const sc = SCALES[pdfFontSize] || SCALES.normal
+  const isNetto = summaryMode === 'netto'
+  // W trybie netto "do zapłaty" liczymy od wartości netto (bez VAT), a nie brutto
+  const doZaplatyDisplay = isNetto
+    ? Math.max(0, net - zaliczkaAmt)
+    : doZaplaty
 
   // Padding dolny body: gdy stopka widoczna rezerwujemy 64px, gdy ukryta tylko 24px
   const bodyBottomPad = hideFooter ? 24 : 64
@@ -287,18 +293,22 @@ export default function QuotePDF({
           {/* ── PODSUMOWANIE ── */}
           {!hideTotals && (
             <View style={S.totalWrap} wrap={false}>
-              <View style={S.totalRow}>
-                <Text style={[S.totalLabel, { fontSize: sc.total }]}>Wartość netto</Text>
-                <Text style={[S.totalVal, { fontSize: sc.total }]}>{fmt(net)}</Text>
-              </View>
-              <View style={S.totalRow}>
-                <Text style={[S.totalLabel, { fontSize: sc.total }]}>VAT ({vatRate}%)</Text>
-                <Text style={[S.totalVal, { fontSize: sc.total }]}>{fmt(vat)}</Text>
-              </View>
-              <View style={S.totalRow}>
-                <Text style={[S.totalLabel, { fontSize: sc.total }]}>Łącznie brutto</Text>
-                <Text style={[S.totalVal, { fontSize: sc.total }]}>{fmt(gross)}</Text>
-              </View>
+              {!isNetto && (
+                <>
+                  <View style={S.totalRow}>
+                    <Text style={[S.totalLabel, { fontSize: sc.total }]}>Wartość netto</Text>
+                    <Text style={[S.totalVal, { fontSize: sc.total }]}>{fmt(net)}</Text>
+                  </View>
+                  <View style={S.totalRow}>
+                    <Text style={[S.totalLabel, { fontSize: sc.total }]}>VAT ({vatRate}%)</Text>
+                    <Text style={[S.totalVal, { fontSize: sc.total }]}>{fmt(vat)}</Text>
+                  </View>
+                  <View style={S.totalRow}>
+                    <Text style={[S.totalLabel, { fontSize: sc.total }]}>Łącznie brutto</Text>
+                    <Text style={[S.totalVal, { fontSize: sc.total }]}>{fmt(gross)}</Text>
+                  </View>
+                </>
+              )}
               {zaliczkaAmt > 0 && (
                 <View style={S.totalRow}>
                   <Text style={[S.totalLabel, { fontSize: sc.total }]}>Zaliczka wpłacona</Text>
@@ -306,8 +316,10 @@ export default function QuotePDF({
                 </View>
               )}
               <View style={S.totalMain}>
-                <Text style={[S.totalMainTxt, { fontSize: sc.totalMain }]}>DO ZAPŁATY</Text>
-                <Text style={[S.totalMainTxt, { fontSize: sc.totalMain }]}>{fmt(doZaplaty)}</Text>
+                <Text style={[S.totalMainTxt, { fontSize: sc.totalMain }]}>
+                  {isNetto ? 'WARTOŚĆ NETTO' : 'DO ZAPŁATY'}
+                </Text>
+                <Text style={[S.totalMainTxt, { fontSize: sc.totalMain }]}>{fmt(doZaplatyDisplay)}</Text>
               </View>
             </View>
           )}
