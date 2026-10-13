@@ -29,6 +29,11 @@ export const useStore = create(
       updateService: (id, data) =>
         set((s) => ({
           services: s.services.map((sv) => (sv.id === id ? { ...sv, ...data } : sv)),
+          quoteItems: s.quoteItems.map((item) =>
+            item.type !== 'section' && item.sid === id
+              ? { ...item, name: data.name, price: data.price }
+              : item
+          ),
         })),
 
       deleteService: (id) =>
@@ -38,6 +43,7 @@ export const useStore = create(
         })),
 
       quoteItems: [],
+      activeSectionId: null,
       client: {
         name: '', address: '', phone: '', email: '', area: '',
         quoteNum: freshQuoteNum(), validDays: 30, vatRate: 23,
@@ -46,6 +52,7 @@ export const useStore = create(
       zaliczka: 0,
       hidePrices: false,
       hideTotals: false,
+      showSectionTotals: true,
       summaryMode: 'brutto', // 'brutto' | 'netto' — który wariant kwoty pokazujemy w podsumowaniu
       pdfFontSize: 'normal', // 'small' | 'normal' | 'large'
       documentType: 'Wycena', // 'Wycena' | 'Kosztorys'
@@ -56,27 +63,60 @@ export const useStore = create(
       setZaliczka: (val) => set({ zaliczka: parseFloat(val) || 0 }),
       setHidePrices: (val) => set({ hidePrices: val }),
       setHideTotals: (val) => set({ hideTotals: val }),
+      setShowSectionTotals: (val) => set({ showSectionTotals: val }),
       setSummaryMode: (val) => set({ summaryMode: val }),
       setPdfFontSize: (val) => set({ pdfFontSize: val }),
       setDocumentType: (val) => set({ documentType: val }),
 
       addToQuote: (serviceId) => {
-        const { services, quoteItems } = get()
-        if (quoteItems.find((i) => i.sid === serviceId)) return
+        const { services, quoteItems, activeSectionId } = get()
+        if (quoteItems.find((i) => i.type !== 'section' && i.sid === serviceId)) return
         const svc = services.find((s) => s.id === serviceId)
         if (!svc) return
+        const nextItems = [...quoteItems]
+        const newItem = {
+          type: 'item',
+          sid: serviceId, name: svc.name, unit: svc.unit,
+          qty: 1, price: svc.price,
+          hasMaterial: false, materialPrice: 0,
+          isFlat: false,
+        }
+        const sectionIdx = nextItems.findIndex((item) => item.type === 'section' && item.id === activeSectionId)
+        if (sectionIdx === -1) nextItems.push(newItem)
+        else {
+          let insertAt = sectionIdx + 1
+          while (insertAt < nextItems.length && nextItems[insertAt].type !== 'section') insertAt += 1
+          nextItems.splice(insertAt, 0, newItem)
+        }
         set({
-          quoteItems: [
-            ...quoteItems,
-            {
-              sid: serviceId, name: svc.name, unit: svc.unit,
-              qty: 1, price: svc.price,
-              hasMaterial: false, materialPrice: 0,
-              isFlat: false,
-            },
-          ],
+          quoteItems: nextItems,
         })
       },
+
+      addSection: () => {
+        const { quoteItems } = get()
+        const id = `section-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+        const count = quoteItems.filter((item) => item.type === 'section').length + 1
+        set({
+          quoteItems: [...quoteItems, { type: 'section', id, name: `${count}. Nowy dział` }],
+          activeSectionId: id,
+        })
+      },
+
+      updateSection: (id, name) =>
+        set((s) => ({
+          quoteItems: s.quoteItems.map((item) =>
+            item.type === 'section' && item.id === id ? { ...item, name } : item
+          ),
+        })),
+
+      removeSection: (id) =>
+        set((s) => ({
+          quoteItems: s.quoteItems.filter((item) => !(item.type === 'section' && item.id === id)),
+          activeSectionId: s.activeSectionId === id ? null : s.activeSectionId,
+        })),
+
+      setActiveSection: (id) => set({ activeSectionId: id }),
 
       removeFromQuote: (idx) =>
         set((s) => ({ quoteItems: s.quoteItems.filter((_, i) => i !== idx) })),
@@ -99,8 +139,8 @@ export const useStore = create(
 
       clearQuote: () =>
         set({
-          quoteItems: [], notes: '', zaliczka: 0,
-          hidePrices: false, hideTotals: false, hideFooter: false,
+          quoteItems: [], activeSectionId: null, notes: '', zaliczka: 0,
+          hidePrices: false, hideTotals: false, showSectionTotals: true, hideFooter: false,
           summaryMode: 'brutto',
           pdfFontSize: 'normal',
           documentType: 'Wycena',
@@ -112,13 +152,14 @@ export const useStore = create(
 
       getCalc: () => {
         const { quoteItems, client, zaliczka } = get()
+        const items = quoteItems.filter((item) => item.type !== 'section')
 
-        const laborNet = quoteItems.reduce((acc, it) => {
+        const laborNet = items.reduce((acc, it) => {
           const labor = parseFloat(it.price) || 0
           return acc + (it.isFlat ? labor : labor * (parseFloat(it.qty) || 0))
         }, 0)
 
-        const matNet = quoteItems.reduce((acc, it) => {
+        const matNet = items.reduce((acc, it) => {
           if (!it.hasMaterial) return acc
           const mat = parseFloat(it.materialPrice) || 0
           return acc + (it.isFlat ? mat : mat * (parseFloat(it.qty) || 0))
@@ -136,7 +177,7 @@ export const useStore = create(
       savedQuotes: [],
 
       saveQuote: (folderOverride) => {
-        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, summaryMode, pdfFontSize, documentType, getCalc } = get()
+        const { quoteItems, activeSectionId, client, notes, zaliczka, hidePrices, hideTotals, showSectionTotals, hideFooter, summaryMode, pdfFontSize, documentType, getCalc } = get()
         const calc  = getCalc()
         const now   = dayjs()
         const folder = folderOverride || now.format('YYYY/MM')
@@ -150,7 +191,7 @@ export const useStore = create(
               quoteNum:   client.quoteNum || '',
               clientName: client.name     || '(bez nazwy)',
               gross:      calc.gross,
-              snapshot:   { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, summaryMode, pdfFontSize, documentType },
+              snapshot:   { quoteItems, activeSectionId, client, notes, zaliczka, hidePrices, hideTotals, showSectionTotals, hideFooter, summaryMode, pdfFontSize, documentType },
             },
             ...s.savedQuotes,
           ],
@@ -162,14 +203,16 @@ export const useStore = create(
         const { savedQuotes } = get()
         const q = savedQuotes.find((q) => q.id === id)
         if (!q) return
-        const { quoteItems, client, notes, zaliczka, hidePrices, hideTotals, hideFooter, summaryMode, pdfFontSize, documentType } = q.snapshot
+        const { quoteItems, activeSectionId, client, notes, zaliczka, hidePrices, hideTotals, showSectionTotals, hideFooter, summaryMode, pdfFontSize, documentType } = q.snapshot
         set({
           quoteItems,
+          activeSectionId: activeSectionId || null,
           client,
           notes,
           zaliczka,
           hidePrices,
           hideTotals: hideTotals || false,
+          showSectionTotals: showSectionTotals !== false,
           hideFooter: hideFooter || false,
           summaryMode: summaryMode || 'brutto',
           pdfFontSize: pdfFontSize || 'normal',

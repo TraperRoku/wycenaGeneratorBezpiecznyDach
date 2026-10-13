@@ -20,7 +20,7 @@ const DOC_TYPES = [
 export default function Preview({ onBack }) {
   const {
     quoteItems, client, notes, zaliczka,
-    hidePrices, hideTotals, hideFooter,
+    hidePrices, hideTotals, hideFooter, showSectionTotals,
     summaryMode,
     pdfFontSize, setPdfFontSize,
     documentType, setDocumentType,
@@ -42,10 +42,11 @@ export default function Preview({ onBack }) {
     setShowPDF(false)
     const t = setTimeout(() => setShowPDF(true), 200)
     return () => clearTimeout(t)
-  }, [hidePrices, hideTotals, hideFooter, summaryMode, pdfFontSize, documentType])
+  }, [hidePrices, hideTotals, hideFooter, showSectionTotals, summaryMode, pdfFontSize, documentType])
 
   const fileName = `${documentType}_${(client.name || 'klient').replace(/\s+/g, '_')}_${client.quoteNum || dayjs().format('MMYYYY')}.pdf`
-  const pdfProps = { quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals, hideFooter, summaryMode, pdfFontSize, documentType }
+  const serviceItems = quoteItems.filter((item) => item.type !== 'section')
+  const pdfProps = { quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals, hideFooter, showSectionTotals, summaryMode, pdfFontSize, documentType }
 
   const ORANGE   = '#E85D04'
   const GRAY_300 = '#C9C8C3'
@@ -108,7 +109,7 @@ export default function Preview({ onBack }) {
           </div>
 
           <button className="btn btn-secondary" onClick={onBack}>← Wróć</button>
-          {quoteItems.length > 0 && (
+          {serviceItems.length > 0 && (
             <PDFDownloadLink
               document={<QuotePDF {...pdfProps} />}
               fileName={fileName}
@@ -124,7 +125,7 @@ export default function Preview({ onBack }) {
         </div>
       </div>
 
-      {quoteItems.length === 0 ? (
+      {serviceItems.length === 0 ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, color: 'var(--gray-500)' }}>
           <div style={{ fontSize: 40 }}>📄</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--gray-700)' }}>Brak pozycji w wycenie</div>

@@ -51,6 +51,9 @@ const S = StyleSheet.create({
   tableHead:    { flexDirection: 'row', backgroundColor: C.orangeLight, padding: '7 10', borderRadius: 4 },
   tableRowAlt:  { backgroundColor: C.gray50 },
   tdBold:       { fontFamily: 'Roboto', fontWeight: 700 },
+  sectionHead:  { backgroundColor: C.orangeLight, borderLeftWidth: 3, borderLeftColor: C.orange, padding: '7 10', marginTop: 5 },
+  sectionHeadText: { color: C.gray900, fontFamily: 'Roboto', fontWeight: 700 },
+  sectionTotal: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.gray50, padding: '6 10', borderBottomWidth: 0.5, borderBottomColor: C.gray200 },
 
   nLp:    { width: 22 },
   nName:  { flex: 1, paddingRight: 6 },
@@ -102,6 +105,51 @@ const getRowTotal = (item) => {
   const labor = parseFloat(item.price) || 0
   const mat   = item.hasMaterial ? (parseFloat(item.materialPrice) || 0) : 0
   return item.isFlat ? labor + mat : (labor + mat) * (parseFloat(item.qty) || 0)
+}
+
+const QuoteRows = ({ quoteItems, Row, sc, showSectionTotals, summaryMode, vatRate }) => {
+  const rows = []
+  let serviceNumber = 0
+
+  for (let i = 0; i < quoteItems.length; i += 1) {
+    const item = quoteItems[i]
+    if (item.type === 'section') {
+      const sectionItems = []
+      let sectionNet = 0
+      let j = i + 1
+      while (j < quoteItems.length && quoteItems[j].type !== 'section') {
+        sectionItems.push(quoteItems[j])
+        sectionNet += getRowTotal(quoteItems[j])
+        j += 1
+      }
+      const name = item.name || 'Dział'
+      rows.push(
+        <View key={`section-${item.id || i}`}>
+          <View style={S.sectionHead}>
+            <Text style={[S.sectionHeadText, { fontSize: sc.base }]}>{name}</Text>
+          </View>
+          {sectionItems.map((sectionItem) => {
+            serviceNumber += 1
+            return <Row key={`item-${sectionItem.sid ?? serviceNumber}`} item={sectionItem} i={serviceNumber - 1} sc={sc} />
+          })}
+          {showSectionTotals && (
+            <View style={S.sectionTotal}>
+              <Text style={[S.tdBold, { fontSize: sc.sub, color: C.gray700 }]}>Razem {name}:</Text>
+              <Text style={[S.tdBold, { fontSize: sc.sub, color: C.gray900 }]}>
+                {fmt(summaryMode === 'netto' ? sectionNet : sectionNet * (1 + (parseFloat(vatRate) || 0) / 100))}
+              </Text>
+            </View>
+          )}
+        </View>
+      )
+      i = j - 1
+    } else {
+      serviceNumber += 1
+      rows.push(<Row key={`item-${item.sid ?? i}`} item={item} i={serviceNumber - 1} sc={sc} />)
+    }
+  }
+
+  return rows
 }
 
 const NormalRow = ({ item, i, sc }) => (
@@ -167,6 +215,7 @@ export default function QuotePDF({
   quoteItems, client, notes, zaliczka, calc,
   hidePrices, hideTotals, hideFooter,
   summaryMode = 'brutto',
+  showSectionTotals = true,
   pdfFontSize = 'normal',
   documentType = 'Wycena',
 }) {
@@ -182,7 +231,8 @@ export default function QuotePDF({
   // Padding dolny body: gdy stopka widoczna rezerwujemy 64px, gdy ukryta tylko 24px
   const bodyBottomPad = hideFooter ? 24 : 64
 
-  const anyMaterial = quoteItems.some((it) => it.hasMaterial)
+  const services = quoteItems.filter((it) => it.type !== 'section')
+  const anyMaterial = services.some((it) => it.hasMaterial)
   const tableMode = hidePrices === true
     ? 'simple'
     : hidePrices === 'qty'
@@ -251,7 +301,7 @@ export default function QuotePDF({
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 }, S.sLp]}>Lp.</Text>
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 }, S.sName]}>Zakres prac</Text>
               </View>
-              {quoteItems.map((item, i) => <SimpleRow key={i} item={item} i={i} sc={sc} />)}
+              <QuoteRows quoteItems={quoteItems} Row={SimpleRow} sc={sc} showSectionTotals={showSectionTotals} summaryMode={summaryMode} vatRate={vatRate} />
             </View>
 
           ) : tableMode === 'qty_only' ? (
@@ -261,7 +311,7 @@ export default function QuotePDF({
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 }, S.qName]}>Opis</Text>
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.qQty]}>Ilość</Text>
               </View>
-              {quoteItems.map((item, i) => <QtyRow key={i} item={item} i={i} sc={sc} />)}
+              <QuoteRows quoteItems={quoteItems} Row={QtyRow} sc={sc} showSectionTotals={showSectionTotals} summaryMode={summaryMode} vatRate={vatRate} />
             </View>
 
           ) : tableMode === 'material' ? (
@@ -274,7 +324,7 @@ export default function QuotePDF({
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.mMat]}>Materiał</Text>
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.mTotal]}>Wartość</Text>
               </View>
-              {quoteItems.map((item, i) => <MaterialRow key={i} item={item} i={i} sc={sc} />)}
+              <QuoteRows quoteItems={quoteItems} Row={MaterialRow} sc={sc} showSectionTotals={showSectionTotals} summaryMode={summaryMode} vatRate={vatRate} />
             </View>
 
           ) : (
@@ -286,7 +336,7 @@ export default function QuotePDF({
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.nPrice]}>Cena / jedn.</Text>
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.nTotal]}>Wartość</Text>
               </View>
-              {quoteItems.map((item, i) => <NormalRow key={i} item={item} i={i} sc={sc} />)}
+              <QuoteRows quoteItems={quoteItems} Row={NormalRow} sc={sc} showSectionTotals={showSectionTotals} summaryMode={summaryMode} vatRate={vatRate} />
             </View>
           )}
 

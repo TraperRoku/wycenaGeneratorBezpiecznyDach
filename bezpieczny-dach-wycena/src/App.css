@@ -388,6 +388,59 @@ textarea { resize: vertical; min-height: 64px; }
 }
 .remove-btn:hover { background: #fee2e2; color: #dc2626; }
 
+.quote-section-row {
+  display: grid;
+  grid-template-columns: 24px minmax(160px, 1fr) auto 36px;
+  gap: 12px;
+  padding: 10px 14px;
+  align-items: center;
+  background: #fff3eb;
+  border-bottom: 1px solid #fdd8b8;
+  border-left: 4px solid var(--orange);
+  cursor: pointer;
+}
+.quote-section-row.active { background: #ffeadb; }
+.section-drag-handle {
+  color: var(--orange);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: grab;
+  user-select: none;
+  text-align: center;
+}
+.quote-section-row input {
+  min-width: 0;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+.quote-section-row input:focus { background: white; border-color: var(--orange); }
+.section-row-actions { display: flex; align-items: center; gap: 10px; }
+.section-subtotal { color: var(--gray-700); font-size: 11px; font-weight: 700; white-space: nowrap; }
+.section-active-btn {
+  border: 1px solid var(--gray-300);
+  border-radius: 16px;
+  padding: 4px 9px;
+  background: white;
+  color: var(--gray-500);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.section-active-btn.selected { border-color: var(--orange); background: var(--orange); color: white; }
+
+@media (max-width: 900px) {
+  .quote-section-row { grid-template-columns: 24px minmax(120px, 1fr) 36px; }
+  .section-row-actions { grid-column: 2; flex-wrap: wrap; }
+  .quote-section-row > .remove-btn { grid-column: 3; grid-row: 1 / span 2; }
+}
+
 .empty-quote {
   padding: 48px 24px;
   text-align: center;

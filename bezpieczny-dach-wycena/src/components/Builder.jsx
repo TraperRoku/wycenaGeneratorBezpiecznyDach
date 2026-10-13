@@ -18,8 +18,9 @@ const FONT_OPTIONS = [
 
 export default function Builder({ onGoPreview }) {
 const {
-  quoteItems, notes, zaliczka, hidePrices, hideTotals,
+  quoteItems, activeSectionId, notes, zaliczka, hidePrices, hideTotals, showSectionTotals,
   updateQuoteItem, removeFromQuote, reorderQuoteItems,
+  addSection, updateSection, removeSection, setActiveSection, setShowSectionTotals,
   setNotes, setZaliczka, setHidePrices, setHideTotals, clearQuote, getCalc, saveQuote,
   hideFooter, setHideFooter,
   summaryMode, setSummaryMode,
@@ -30,12 +31,28 @@ const {
   const dragOverIdx = useRef(null)
 
   const { net, vat, vatRate, gross, laborNet, matNet, zaliczka: zaliczkaCalc, doZaplaty } = getCalc()
-  const anyMaterial = quoteItems.some((it) => it.hasMaterial)
+  const serviceItems = quoteItems.filter((item) => item.type !== 'section')
+  const anyMaterial = serviceItems.some((it) => it.hasMaterial)
 
   const getRowTotal = (item) => {
     const labor = parseFloat(item.price) || 0
     const mat   = item.hasMaterial ? (parseFloat(item.materialPrice) || 0) : 0
     return item.isFlat ? labor + mat : (labor + mat) * (parseFloat(item.qty) || 0)
+  }
+
+  const finishReorder = () => {
+    const fromIdx = dragIdx.current
+    const toIdx = dragOverIdx.current
+    if (fromIdx !== null && toIdx !== null && fromIdx !== toIdx) {
+      const targetIsSection = quoteItems[toIdx]?.type === 'section'
+      const draggedIsService = quoteItems[fromIdx]?.type !== 'section'
+      const insertIdx = targetIsSection && draggedIsService && fromIdx > toIdx
+        ? toIdx + 1
+        : toIdx
+      reorderQuoteItems(fromIdx, insertIdx)
+    }
+    dragIdx.current = null
+    dragOverIdx.current = null
   }
 
   return (
@@ -44,8 +61,8 @@ const {
         <div>
           <div className="panel-title">Kreator wyceny</div>
           <div className="panel-subtitle">
-            {quoteItems.length
-              ? `${quoteItems.length} pozycji · ${fmt(summaryMode === 'netto' ? net : gross)} zł ${summaryMode}`
+            {serviceItems.length
+              ? `${serviceItems.length} pozycji · ${fmt(summaryMode === 'netto' ? net : gross)} zł ${summaryMode}`
               : 'Kliknij usługi z panelu po lewej'}
           </div>
         </div>
@@ -111,6 +128,27 @@ const {
                       border: `1.5px solid ${hideTotals === o.val ? '#7c3aed' : GRAY_300}`,
                       background: hideTotals === o.val ? '#7c3aed' : 'white',
                       color: hideTotals === o.val ? 'white' : GRAY_500,
+                    }}
+                  >{o.label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Sumy działów */}
+            <div style={{ flex: 1, minWidth: 160 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: GRAY_500, marginBottom: 5 }}>Sumy działów PDF</div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                {[
+                  { val: true, label: '✅ Pokaż' },
+                  { val: false, label: '🚫 Ukryj' },
+                ].map(o => (
+                  <button key={String(o.val)} onClick={() => setShowSectionTotals(o.val)}
+                    style={{
+                      padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1.5px solid ${showSectionTotals === o.val ? ORANGE : GRAY_300}`,
+                      background: showSectionTotals === o.val ? ORANGE : 'white',
+                      color: showSectionTotals === o.val ? 'white' : GRAY_500,
                     }}
                   >{o.label}</button>
                 ))}
@@ -201,6 +239,9 @@ const {
       )}
 
       {/* ── Tabela wyceny ── */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button className="btn btn-secondary" onClick={addSection}>＋ Dodaj dział / kategorię</button>
+      </div>
       <div className="quote-table-wrap">
         <div style={{
           display: 'grid',
@@ -227,24 +268,55 @@ const {
             </div>
           ) : (
             quoteItems.map((item, idx) => {
-              const rowBg = item.isFlat ? BLUE_LIGHT : item.hasMaterial ? '#FFFAF6' : 'white'
+            if (item.type === 'section') {
+              let sectionNet = 0
+              for (let i = idx + 1; i < quoteItems.length && quoteItems[i].type !== 'section'; i += 1) {
+                sectionNet += getRowTotal(quoteItems[i])
+              }
+              const sectionGross = sectionNet * (1 + (parseFloat(vatRate) || 0) / 100)
+              const isActive = activeSectionId === item.id
               return (
                 <div
-                  key={idx}
+                  key={item.id}
+                  className={`quote-section-row${isActive ? ' active' : ''}`}
                   draggable
                   onDragStart={() => { dragIdx.current = idx }}
                   onDragEnter={() => { dragOverIdx.current = idx }}
-                  onDragEnd={() => {
-                    if (
-                      dragIdx.current !== null &&
-                      dragOverIdx.current !== null &&
-                      dragIdx.current !== dragOverIdx.current
-                    ) {
-                      reorderQuoteItems(dragIdx.current, dragOverIdx.current)
-                    }
-                    dragIdx.current = null
-                    dragOverIdx.current = null
-                  }}
+                  onDragEnd={finishReorder}
+                  onDragOver={(e) => e.preventDefault()}
+                  onClick={() => setActiveSection(item.id)}
+                >
+                  <div className="section-drag-handle" title="Przeciągnij dział, aby zmienić jego kolejność">::</div>
+                  <input
+                    aria-label="Nazwa działu"
+                    value={item.name}
+                    placeholder="Nazwa działu, np. Dach główny, Tarasy..."
+                    onChange={(e) => updateSection(item.id, e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div className="section-row-actions">
+                    <span className="section-subtotal">
+                      Netto {fmt(sectionNet)} zł · Brutto {fmt(sectionGross)} zł
+                    </span>
+                    <button
+                      className={`section-active-btn${isActive ? ' selected' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); setActiveSection(isActive ? null : item.id) }}
+                    >{isActive ? 'Aktywny' : 'Ustaw aktywny'}</button>
+                  </div>
+                  <button className="remove-btn" aria-label="Usuń dział (usługi zostaną zachowane)"
+                    title="Usuń nagłówek działu — usługi pozostaną w wycenie"
+                    onClick={(e) => { e.stopPropagation(); removeSection(item.id) }}>×</button>
+                </div>
+              )
+            }
+            const rowBg = item.isFlat ? BLUE_LIGHT : item.hasMaterial ? '#FFFAF6' : 'white'
+            return (
+              <div
+                key={item.sid}
+                  draggable
+                  onDragStart={() => { dragIdx.current = idx }}
+                  onDragEnter={() => { dragOverIdx.current = idx }}
+                  onDragEnd={finishReorder}
                   onDragOver={(e) => e.preventDefault()}
                   style={{
                     display: 'grid',
@@ -362,7 +434,7 @@ const {
           placeholder="np. Termin realizacji: 14 dni od podpisania umowy. Płatność: 30 dni. Gwarancja: 5 lat." />
       </div>
 
-      {quoteItems.length > 0 && (
+      {      serviceItems.length > 0 && (
         <div className="summary-card">
           <div className="discount-row">
             <label>Zaliczka wpłacona</label>
