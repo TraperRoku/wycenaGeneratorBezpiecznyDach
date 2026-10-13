@@ -21,6 +21,7 @@ export default function Preview({ onBack }) {
   const {
     quoteItems, client, notes, zaliczka,
     hidePrices, hideTotals, hideFooter, showSectionTotals,
+    includeOptionsInTotal,
     summaryMode,
     pdfFontSize, setPdfFontSize,
     documentType, setDocumentType,
@@ -42,11 +43,11 @@ export default function Preview({ onBack }) {
     setShowPDF(false)
     const t = setTimeout(() => setShowPDF(true), 200)
     return () => clearTimeout(t)
-  }, [hidePrices, hideTotals, hideFooter, showSectionTotals, summaryMode, pdfFontSize, documentType])
+  }, [hidePrices, hideTotals, hideFooter, showSectionTotals, includeOptionsInTotal, summaryMode, pdfFontSize, documentType])
 
   const fileName = `${documentType}_${(client.name || 'klient').replace(/\s+/g, '_')}_${client.quoteNum || dayjs().format('MMYYYY')}.pdf`
   const serviceItems = quoteItems.filter((item) => item.type !== 'section')
-  const pdfProps = { quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals, hideFooter, showSectionTotals, summaryMode, pdfFontSize, documentType }
+  const pdfProps = { quoteItems, client, notes, zaliczka, calc, hidePrices, hideTotals, hideFooter, showSectionTotals, includeOptionsInTotal, summaryMode, pdfFontSize, documentType }
 
   const ORANGE   = '#E85D04'
   const GRAY_300 = '#C9C8C3'

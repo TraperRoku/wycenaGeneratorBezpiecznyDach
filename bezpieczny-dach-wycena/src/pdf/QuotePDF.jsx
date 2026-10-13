@@ -82,6 +82,11 @@ const S = StyleSheet.create({
   totalVal:     { fontFamily: 'Roboto', fontWeight: 700, color: C.gray900 },
   totalMain:    { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.orange, borderRadius: 6, padding: '11 14', marginTop: 6 },
   totalMainTxt: { fontFamily: 'Roboto', fontWeight: 700, color: C.white },
+  optionalTotal: { width: 82, alignItems: 'flex-end' },
+  optionalNote: { fontSize: 7, color: '#92400e', fontFamily: 'Roboto', fontWeight: 700, marginTop: 1 },
+  optionalSummary: { marginTop: 8, padding: '9 11', backgroundColor: '#fffbeb', borderWidth: 1, borderColor: '#fcd34d', borderLeftWidth: 3, borderLeftColor: '#d97706', borderRadius: 4 },
+  optionalSummaryTitle: { color: '#78350f', fontFamily: 'Roboto', fontWeight: 700, marginBottom: 3 },
+  optionalSummaryText: { color: '#78350f', lineHeight: 1.5 },
 
   notesWrap: { marginTop: 14 },
   noteBox:   { backgroundColor: C.orangePale, borderLeftWidth: 3, borderLeftColor: C.orange, padding: '10 12', borderRadius: 4 },
@@ -98,7 +103,7 @@ const S = StyleSheet.create({
   footerDetail: { fontSize: 9, color: C.gray500, lineHeight: 1.6 },
 })
 
-const fmtN = (n) => Number(n).toFixed(2)
+const fmtN = (n) => Number(n).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmt  = (n) => fmtN(n) + ' zł'
 
 const getRowTotal = (item) => {
@@ -107,7 +112,7 @@ const getRowTotal = (item) => {
   return item.isFlat ? labor + mat : (labor + mat) * (parseFloat(item.qty) || 0)
 }
 
-const QuoteRows = ({ quoteItems, Row, sc, showSectionTotals, summaryMode, vatRate }) => {
+const QuoteRows = ({ quoteItems, Row, sc, showSectionTotals, summaryMode, vatRate, includeOptionsInTotal }) => {
   const rows = []
   let serviceNumber = 0
 
@@ -119,29 +124,41 @@ const QuoteRows = ({ quoteItems, Row, sc, showSectionTotals, summaryMode, vatRat
       let j = i + 1
       while (j < quoteItems.length && quoteItems[j].type !== 'section') {
         sectionItems.push(quoteItems[j])
-        sectionNet += getRowTotal(quoteItems[j])
+        if (includeOptionsInTotal || quoteItems[j].isOptional !== true) sectionNet += getRowTotal(quoteItems[j])
         j += 1
       }
       const name = item.name || 'Dział'
-      rows.push(
-        <View key={`section-${item.id || i}`}>
-          <View style={S.sectionHead}>
-            <Text style={[S.sectionHeadText, { fontSize: sc.base }]}>{name}</Text>
-          </View>
-          {sectionItems.map((sectionItem) => {
-            serviceNumber += 1
-            return <Row key={`item-${sectionItem.sid ?? serviceNumber}`} item={sectionItem} i={serviceNumber - 1} sc={sc} />
-          })}
-          {showSectionTotals && (
-            <View style={S.sectionTotal}>
-              <Text style={[S.tdBold, { fontSize: sc.sub, color: C.gray700 }]}>Razem {name}:</Text>
-              <Text style={[S.tdBold, { fontSize: sc.sub, color: C.gray900 }]}>
-                {fmt(summaryMode === 'netto' ? sectionNet : sectionNet * (1 + (parseFloat(vatRate) || 0) / 100))}
-              </Text>
+      if (sectionItems.length > 0) {
+        const [firstItem, ...remainingItems] = sectionItems
+        const firstItemNumber = serviceNumber + 1
+        serviceNumber += sectionItems.length
+        rows.push(
+          <View key={`section-${item.id || i}`}>
+            <View wrap={false}>
+              <View style={S.sectionHead}>
+                <Text style={[S.sectionHeadText, { fontSize: sc.base }]}>{name}</Text>
+              </View>
+              <Row key={`item-${firstItem.sid ?? firstItemNumber}`} item={firstItem} i={firstItemNumber - 1} sc={sc} />
             </View>
-          )}
-        </View>
-      )
+            {remainingItems.map((sectionItem, sectionItemIdx) => (
+              <Row
+                key={`item-${sectionItem.sid ?? firstItemNumber + sectionItemIdx + 1}`}
+                item={sectionItem}
+                i={firstItemNumber + sectionItemIdx}
+                sc={sc}
+              />
+            ))}
+            {showSectionTotals && (
+              <View style={S.sectionTotal}>
+                <Text style={[S.tdBold, { fontSize: sc.sub, color: C.gray700 }]}>Razem {name}:</Text>
+                <Text style={[S.tdBold, { fontSize: sc.sub, color: C.gray900 }]}>
+                  {fmt(summaryMode === 'netto' ? sectionNet : sectionNet * (1 + (parseFloat(vatRate) || 0) / 100))}
+                </Text>
+              </View>
+            )}
+          </View>
+        )
+      }
       i = j - 1
     } else {
       serviceNumber += 1
@@ -153,10 +170,11 @@ const QuoteRows = ({ quoteItems, Row, sc, showSectionTotals, summaryMode, vatRat
 }
 
 const NormalRow = ({ item, i, sc }) => (
-  <View wrap={false} style={[{ flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center' }, i % 2 === 1 ? S.tableRowAlt : {}]}>
+  <View wrap={false} style={[{ flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center', borderLeftWidth: item.isOptional === true ? 2 : 0, borderLeftColor: '#d97706' }, i % 2 === 1 ? S.tableRowAlt : {}]}>
     <Text style={[{ fontSize: sc.lp, color: C.gray500 }, S.nLp]}>{i + 1}</Text>
     <View style={S.nName}>
       <Text style={{ fontSize: sc.base, color: C.gray900 }}>{item.name}</Text>
+      {item.isOptional === true && <Text style={S.optionalNote}>OPCJA (poza przedmiarem)</Text>}
       <Text style={{ fontSize: sc.sub, color: C.gray500, marginTop: 1 }}>{item.isFlat ? 'ryczałt' : item.unit}</Text>
     </View>
     <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.nQty]}>
@@ -165,14 +183,22 @@ const NormalRow = ({ item, i, sc }) => (
     <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.nPrice]}>
       {item.isFlat ? '—' : `${fmtN(item.price)} zł`}
     </Text>
-    <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.tdBold, S.nTotal]}>{fmt(getRowTotal(item))}</Text>
+    {item.isOptional === true ? (
+      <View style={S.optionalTotal}>
+        <Text style={[{ fontSize: sc.base, color: '#92400e' }, S.tdBold]}>+ {fmtN(getRowTotal(item))}</Text>
+        <Text style={S.optionalNote}>zł (opcja)</Text>
+      </View>
+    ) : <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.tdBold, S.nTotal]}>{fmt(getRowTotal(item))}</Text>}
   </View>
 )
 
 const MaterialRow = ({ item, i, sc }) => (
-  <View wrap={false} style={[{ flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center' }, i % 2 === 1 ? S.tableRowAlt : {}]}>
+  <View wrap={false} style={[{ flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center', borderLeftWidth: item.isOptional === true ? 2 : 0, borderLeftColor: '#d97706' }, i % 2 === 1 ? S.tableRowAlt : {}]}>
     <Text style={[{ fontSize: sc.lp, color: C.gray500 }, S.mLp]}>{i + 1}</Text>
-    <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.mName]}>{item.name}</Text>
+    <View style={S.mName}>
+      <Text style={{ fontSize: sc.base, color: C.gray900 }}>{item.name}</Text>
+      {item.isOptional === true && <Text style={S.optionalNote}>OPCJA (poza przedmiarem)</Text>}
+    </View>
     <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.mQty]}>
       {item.isFlat ? 'ryczałt' : `${fmtN(item.qty)} ${item.unit}`}
     </Text>
@@ -182,25 +208,34 @@ const MaterialRow = ({ item, i, sc }) => (
     <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.mMat]}>
       {!item.hasMaterial ? '—' : item.isFlat ? `${fmtN(item.materialPrice)} zł` : `${fmtN(item.materialPrice)} zł/${item.unit}`}
     </Text>
-    <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.tdBold, S.mTotal]}>{fmt(getRowTotal(item))}</Text>
+    {item.isOptional === true ? (
+      <View style={[S.optionalTotal, { width: 82 }]}>
+        <Text style={[{ fontSize: sc.base, color: '#92400e' }, S.tdBold]}>+ {fmtN(getRowTotal(item))}</Text>
+        <Text style={S.optionalNote}>zł (opcja)</Text>
+      </View>
+    ) : <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.tdBold, S.mTotal]}>{fmt(getRowTotal(item))}</Text>}
   </View>
 )
 
 const SimpleRow = ({ item, i, sc }) => (
-  <View wrap={false} style={[{ flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center' }, i % 2 === 1 ? S.tableRowAlt : {}]}>
+  <View wrap={false} style={[{ flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center', borderLeftWidth: item.isOptional === true ? 2 : 0, borderLeftColor: '#d97706' }, i % 2 === 1 ? S.tableRowAlt : {}]}>
     <Text style={[{ fontSize: sc.lp, color: C.gray500 }, S.sLp]}>{i + 1}</Text>
-    <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.sName]}>{item.name}</Text>
+    <View style={S.sName}>
+      <Text style={{ fontSize: sc.base, color: C.gray900 }}>{item.name}</Text>
+      {item.isOptional === true && <Text style={S.optionalNote}>OPCJA (poza przedmiarem)</Text>}
+    </View>
   </View>
 )
 
 const QtyRow = ({ item, i, sc }) => (
   <View wrap={false} style={[
-    { flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center' },
+    { flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center', borderLeftWidth: item.isOptional === true ? 2 : 0, borderLeftColor: '#d97706' },
     i % 2 === 1 ? S.tableRowAlt : {}
   ]}>
     <Text style={[{ fontSize: sc.lp, color: C.gray500 }, S.qLp]}>{i + 1}</Text>
     <View style={S.qName}>
       <Text style={{ fontSize: sc.base, color: C.gray900 }}>{item.name}</Text>
+      {item.isOptional === true && <Text style={S.optionalNote}>OPCJA (poza przedmiarem)</Text>}
       <Text style={{ fontSize: sc.sub, color: C.gray500, marginTop: 1 }}>
         {item.isFlat ? 'ryczałt' : item.unit}
       </Text>
@@ -218,8 +253,9 @@ export default function QuotePDF({
   showSectionTotals = true,
   pdfFontSize = 'normal',
   documentType = 'Wycena',
+  includeOptionsInTotal = false,
 }) {
-  const { net, vat, vatRate, gross, doZaplaty, laborNet, matNet } = calc
+  const { net, vat, vatRate, gross, doZaplaty, laborNet, matNet, optionsNet, optionsGross } = calc
   const zaliczkaAmt = parseFloat(zaliczka) || 0
   const sc = SCALES[pdfFontSize] || SCALES.normal
   const isNetto = summaryMode === 'netto'
@@ -232,6 +268,7 @@ export default function QuotePDF({
   const bodyBottomPad = hideFooter ? 24 : 64
 
   const services = quoteItems.filter((it) => it.type !== 'section')
+  const hasOptions = services.some((it) => it.isOptional === true)
   const anyMaterial = services.some((it) => it.hasMaterial)
   const tableMode = hidePrices === true
     ? 'simple'
@@ -301,7 +338,7 @@ export default function QuotePDF({
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 }, S.sLp]}>Lp.</Text>
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 }, S.sName]}>Zakres prac</Text>
               </View>
-              <QuoteRows quoteItems={quoteItems} Row={SimpleRow} sc={sc} showSectionTotals={showSectionTotals} summaryMode={summaryMode} vatRate={vatRate} />
+              <QuoteRows quoteItems={quoteItems} Row={SimpleRow} sc={sc} showSectionTotals={showSectionTotals} summaryMode={summaryMode} vatRate={vatRate} includeOptionsInTotal={includeOptionsInTotal} />
             </View>
 
           ) : tableMode === 'qty_only' ? (
@@ -311,7 +348,7 @@ export default function QuotePDF({
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500 }, S.qName]}>Opis</Text>
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.qQty]}>Ilość</Text>
               </View>
-              <QuoteRows quoteItems={quoteItems} Row={QtyRow} sc={sc} showSectionTotals={showSectionTotals} summaryMode={summaryMode} vatRate={vatRate} />
+              <QuoteRows quoteItems={quoteItems} Row={QtyRow} sc={sc} showSectionTotals={showSectionTotals} summaryMode={summaryMode} vatRate={vatRate} includeOptionsInTotal={includeOptionsInTotal} />
             </View>
 
           ) : tableMode === 'material' ? (
@@ -324,7 +361,7 @@ export default function QuotePDF({
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.mMat]}>Materiał</Text>
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.mTotal]}>Wartość</Text>
               </View>
-              <QuoteRows quoteItems={quoteItems} Row={MaterialRow} sc={sc} showSectionTotals={showSectionTotals} summaryMode={summaryMode} vatRate={vatRate} />
+              <QuoteRows quoteItems={quoteItems} Row={MaterialRow} sc={sc} showSectionTotals={showSectionTotals} summaryMode={summaryMode} vatRate={vatRate} includeOptionsInTotal={includeOptionsInTotal} />
             </View>
 
           ) : (
@@ -336,7 +373,7 @@ export default function QuotePDF({
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.nPrice]}>Cena / jedn.</Text>
                 <Text style={[{ fontSize: sc.th, fontFamily: 'Roboto', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: C.gray500, textAlign: 'right' }, S.nTotal]}>Wartość</Text>
               </View>
-              <QuoteRows quoteItems={quoteItems} Row={NormalRow} sc={sc} showSectionTotals={showSectionTotals} summaryMode={summaryMode} vatRate={vatRate} />
+              <QuoteRows quoteItems={quoteItems} Row={NormalRow} sc={sc} showSectionTotals={showSectionTotals} summaryMode={summaryMode} vatRate={vatRate} includeOptionsInTotal={includeOptionsInTotal} />
             </View>
           )}
 
@@ -371,6 +408,16 @@ export default function QuotePDF({
                 </Text>
                 <Text style={[S.totalMainTxt, { fontSize: sc.totalMain }]}>{fmt(doZaplatyDisplay)}</Text>
               </View>
+              {hasOptions && !includeOptionsInTotal && (
+                <View style={S.optionalSummary} wrap={false}>
+                  <Text style={[S.optionalSummaryTitle, { fontSize: sc.total }]}>
+                    Wartość prac opcjonalnych (poza przedmiarem): + {fmt(optionsNet)} zł netto / {fmt(optionsGross)} zł brutto
+                  </Text>
+                  <Text style={[S.optionalSummaryText, { fontSize: sc.sub }]}>
+                    Powyższe pozycje stanowią rekomendację Wykonawcy na podstawie analizy dokumentacji projektowej i nie zostały wliczone do głównej kwoty oferty.
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 

@@ -53,6 +53,7 @@ export const useStore = create(
       hidePrices: false,
       hideTotals: false,
       showSectionTotals: true,
+      includeOptionsInTotal: false,
       summaryMode: 'brutto', // 'brutto' | 'netto' — który wariant kwoty pokazujemy w podsumowaniu
       pdfFontSize: 'normal', // 'small' | 'normal' | 'large'
       documentType: 'Wycena', // 'Wycena' | 'Kosztorys'
@@ -64,6 +65,7 @@ export const useStore = create(
       setHidePrices: (val) => set({ hidePrices: val }),
       setHideTotals: (val) => set({ hideTotals: val }),
       setShowSectionTotals: (val) => set({ showSectionTotals: val }),
+      setIncludeOptionsInTotal: (val) => set({ includeOptionsInTotal: val }),
       setSummaryMode: (val) => set({ summaryMode: val }),
       setPdfFontSize: (val) => set({ pdfFontSize: val }),
       setDocumentType: (val) => set({ documentType: val }),
@@ -79,7 +81,7 @@ export const useStore = create(
           sid: serviceId, name: svc.name, unit: svc.unit,
           qty: 1, price: svc.price,
           hasMaterial: false, materialPrice: 0,
-          isFlat: false,
+          isFlat: false, isOptional: false,
         }
         const sectionIdx = nextItems.findIndex((item) => item.type === 'section' && item.id === activeSectionId)
         if (sectionIdx === -1) nextItems.push(newItem)
@@ -141,6 +143,7 @@ export const useStore = create(
         set({
           quoteItems: [], activeSectionId: null, notes: '', zaliczka: 0,
           hidePrices: false, hideTotals: false, showSectionTotals: true, hideFooter: false,
+          includeOptionsInTotal: false,
           summaryMode: 'brutto',
           pdfFontSize: 'normal',
           documentType: 'Wycena',
@@ -151,33 +154,53 @@ export const useStore = create(
         }),
 
       getCalc: () => {
-        const { quoteItems, client, zaliczka } = get()
+        const { quoteItems, client, zaliczka, includeOptionsInTotal } = get()
         const items = quoteItems.filter((item) => item.type !== 'section')
 
-        const laborNet = items.reduce((acc, it) => {
+        const sumLabor = (selectedItems) => selectedItems.reduce((acc, it) => {
           const labor = parseFloat(it.price) || 0
           return acc + (it.isFlat ? labor : labor * (parseFloat(it.qty) || 0))
         }, 0)
 
-        const matNet = items.reduce((acc, it) => {
+        const sumMaterial = (selectedItems) => selectedItems.reduce((acc, it) => {
           if (!it.hasMaterial) return acc
           const mat = parseFloat(it.materialPrice) || 0
           return acc + (it.isFlat ? mat : mat * (parseFloat(it.qty) || 0))
         }, 0)
 
-        const net      = laborNet + matNet
+        const baseItems = items.filter((it) => it.isOptional !== true)
+        const optionItems = items.filter((it) => it.isOptional === true)
+        const baseLaborNet = sumLabor(baseItems)
+        const baseMatNet = sumMaterial(baseItems)
+        const baseNet = baseLaborNet + baseMatNet
+        const optionsLaborNet = sumLabor(optionItems)
+        const optionsMatNet = sumMaterial(optionItems)
+        const optionsNet = optionsLaborNet + optionsMatNet
         const vatRate  = client.vatRate != null && client.vatRate !== '' ? parseFloat(client.vatRate) : 23
-        const vat      = (net * vatRate) / 100
-        const gross    = net + vat
+        const baseVat = (baseNet * vatRate) / 100
+        const baseGross = baseNet + baseVat
+        const optionsVat = (optionsNet * vatRate) / 100
+        const optionsGross = optionsNet + optionsVat
+        const net = baseNet + (includeOptionsInTotal ? optionsNet : 0)
+        const laborNet = baseLaborNet + (includeOptionsInTotal ? optionsLaborNet : 0)
+        const matNet = baseMatNet + (includeOptionsInTotal ? optionsMatNet : 0)
+        const vat = (net * vatRate) / 100
+        const gross = net + vat
         const doZaplaty = Math.max(0, gross - (parseFloat(zaliczka) || 0))
-        return { net, laborNet, matNet, vat, vatRate, gross, zaliczka: parseFloat(zaliczka) || 0, doZaplaty }
+        return {
+          net, laborNet, matNet, vat, vatRate, gross,
+          baseNet, baseLaborNet, baseMatNet, baseVat, baseGross,
+          optionsNet, optionsLaborNet, optionsMatNet, optionsVat, optionsGross,
+          combinedGross: baseGross + optionsGross,
+          zaliczka: parseFloat(zaliczka) || 0, doZaplaty,
+        }
       },
 
       // ─── Historia wycen ───────────────────────────────────────────
       savedQuotes: [],
 
       saveQuote: (folderOverride) => {
-        const { quoteItems, activeSectionId, client, notes, zaliczka, hidePrices, hideTotals, showSectionTotals, hideFooter, summaryMode, pdfFontSize, documentType, getCalc } = get()
+        const { quoteItems, activeSectionId, client, notes, zaliczka, hidePrices, hideTotals, showSectionTotals, hideFooter, includeOptionsInTotal, summaryMode, pdfFontSize, documentType, getCalc } = get()
         const calc  = getCalc()
         const now   = dayjs()
         const folder = folderOverride || now.format('YYYY/MM')
@@ -191,7 +214,7 @@ export const useStore = create(
               quoteNum:   client.quoteNum || '',
               clientName: client.name     || '(bez nazwy)',
               gross:      calc.gross,
-              snapshot:   { quoteItems, activeSectionId, client, notes, zaliczka, hidePrices, hideTotals, showSectionTotals, hideFooter, summaryMode, pdfFontSize, documentType },
+              snapshot:   { quoteItems, activeSectionId, client, notes, zaliczka, hidePrices, hideTotals, showSectionTotals, hideFooter, includeOptionsInTotal, summaryMode, pdfFontSize, documentType },
             },
             ...s.savedQuotes,
           ],
@@ -203,9 +226,9 @@ export const useStore = create(
         const { savedQuotes } = get()
         const q = savedQuotes.find((q) => q.id === id)
         if (!q) return
-        const { quoteItems, activeSectionId, client, notes, zaliczka, hidePrices, hideTotals, showSectionTotals, hideFooter, summaryMode, pdfFontSize, documentType } = q.snapshot
+        const { quoteItems, activeSectionId, client, notes, zaliczka, hidePrices, hideTotals, showSectionTotals, hideFooter, includeOptionsInTotal, summaryMode, pdfFontSize, documentType } = q.snapshot
         set({
-          quoteItems,
+          quoteItems: (quoteItems || []).map((item) => item.type === 'section' ? item : { ...item, isOptional: item.isOptional === true }),
           activeSectionId: activeSectionId || null,
           client,
           notes,
@@ -214,6 +237,7 @@ export const useStore = create(
           hideTotals: hideTotals || false,
           showSectionTotals: showSectionTotals !== false,
           hideFooter: hideFooter || false,
+          includeOptionsInTotal: includeOptionsInTotal === true,
           summaryMode: summaryMode || 'brutto',
           pdfFontSize: pdfFontSize || 'normal',
           documentType: documentType || 'Wycena',

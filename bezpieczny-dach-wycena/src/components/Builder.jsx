@@ -19,6 +19,7 @@ const FONT_OPTIONS = [
 export default function Builder({ onGoPreview }) {
 const {
   quoteItems, activeSectionId, notes, zaliczka, hidePrices, hideTotals, showSectionTotals,
+  includeOptionsInTotal, setIncludeOptionsInTotal,
   updateQuoteItem, removeFromQuote, reorderQuoteItems,
   addSection, updateSection, removeSection, setActiveSection, setShowSectionTotals,
   setNotes, setZaliczka, setHidePrices, setHideTotals, clearQuote, getCalc, saveQuote,
@@ -30,7 +31,10 @@ const {
   const dragIdx     = useRef(null)
   const dragOverIdx = useRef(null)
 
-  const { net, vat, vatRate, gross, laborNet, matNet, zaliczka: zaliczkaCalc, doZaplaty } = getCalc()
+  const {
+    net, vat, vatRate, gross, laborNet, matNet, zaliczka: zaliczkaCalc, doZaplaty,
+    optionsNet, optionsGross, combinedGross,
+  } = getCalc()
   const serviceItems = quoteItems.filter((item) => item.type !== 'section')
   const anyMaterial = serviceItems.some((it) => it.hasMaterial)
 
@@ -128,6 +132,27 @@ const {
                       border: `1.5px solid ${hideTotals === o.val ? '#7c3aed' : GRAY_300}`,
                       background: hideTotals === o.val ? '#7c3aed' : 'white',
                       color: hideTotals === o.val ? 'white' : GRAY_500,
+                    }}
+                  >{o.label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Pozycje opcjonalne */}
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: GRAY_500, marginBottom: 5 }}>Pozycje opcjonalne</div>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {[
+                  { val: false, label: 'Osobno (nie wliczaj)' },
+                  { val: true, label: 'Wlicz do sumy' },
+                ].map((o) => (
+                  <button key={String(o.val)} onClick={() => setIncludeOptionsInTotal(o.val)}
+                    style={{
+                      padding: '5px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      border: `1.5px solid ${includeOptionsInTotal === o.val ? '#d97706' : GRAY_300}`,
+                      background: includeOptionsInTotal === o.val ? '#d97706' : 'white',
+                      color: includeOptionsInTotal === o.val ? 'white' : GRAY_500,
                     }}
                   >{o.label}</button>
                 ))}
@@ -271,7 +296,7 @@ const {
             if (item.type === 'section') {
               let sectionNet = 0
               for (let i = idx + 1; i < quoteItems.length && quoteItems[i].type !== 'section'; i += 1) {
-                sectionNet += getRowTotal(quoteItems[i])
+                if (includeOptionsInTotal || quoteItems[i].isOptional !== true) sectionNet += getRowTotal(quoteItems[i])
               }
               const sectionGross = sectionNet * (1 + (parseFloat(vatRate) || 0) / 100)
               const isActive = activeSectionId === item.id
@@ -309,7 +334,7 @@ const {
                 </div>
               )
             }
-            const rowBg = item.isFlat ? BLUE_LIGHT : item.hasMaterial ? '#FFFAF6' : 'white'
+            const rowBg = item.isOptional === true ? '#fffbeb' : item.isFlat ? BLUE_LIGHT : item.hasMaterial ? '#FFFAF6' : 'white'
             return (
               <div
                 key={item.sid}
@@ -323,6 +348,7 @@ const {
                     gridTemplateColumns: '18px 1fr 90px 120px 120px 90px 120px 36px',
                     gap: 14, padding: '10px 14px',
                     borderBottom: '1px solid #F0EFEC',
+                    borderLeft: item.isOptional === true ? '3px dashed #d97706' : '3px solid transparent',
                     alignItems: 'center', background: rowBg,
                     transition: 'background 0.15s',
                     cursor: 'default',
@@ -337,7 +363,15 @@ const {
                   >⠿</div>
 
                   <div>
-                    <div className="item-name">{item.name}</div>
+                    <div className="item-name" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                      <span>{item.name}</span>
+                      {item.isOptional === true && (
+                        <span style={{
+                          padding: '2px 6px', borderRadius: 4, background: '#fef3c7',
+                          color: '#92400e', fontSize: 9, fontWeight: 800, letterSpacing: '0.3px',
+                        }}>OPCJA / POZA PRZEDMIAREM</span>
+                      )}
+                    </div>
                     <div className="item-unit">
                       {item.isFlat
                         ? <span style={{ color: BLUE, fontWeight: 700, fontSize: 10 }}>RYCZAŁT</span>
@@ -394,8 +428,10 @@ const {
                     </div>
                   </div>
 
-                  <div style={{ textAlign: 'right', fontSize: 13, fontWeight: 700, color: item.isFlat ? BLUE : ORANGE }}>
-                    {fmt(getRowTotal(item))} zł
+                  <div style={{ textAlign: 'right', fontSize: 12, fontWeight: 700, color: item.isOptional === true ? '#b45309' : item.isFlat ? BLUE : ORANGE }}>
+                    {item.isOptional === true
+                      ? <><span>+ {fmt(getRowTotal(item))} zł</span><span style={{ display: 'block', fontSize: 10 }}>(opcja)</span></>
+                      : `${fmt(getRowTotal(item))} zł`}
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -417,6 +453,16 @@ const {
                         transition: 'all 0.15s', whiteSpace: 'nowrap', fontFamily: 'inherit',
                       }}
                     >{item.isFlat ? '💰 ryczałt' : 'ryczałt'}</button>
+                    <button onClick={() => updateQuoteItem(idx, 'isOptional', item.isOptional !== true)}
+                      title="Oznacz pozycję jako opcjonalną poza przedmiarem"
+                      style={{
+                        padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 700, cursor: 'pointer',
+                        border: `1.5px solid ${item.isOptional === true ? '#d97706' : GRAY_300}`,
+                        background: item.isOptional === true ? '#d97706' : 'transparent',
+                        color: item.isOptional === true ? 'white' : GRAY_500,
+                        transition: 'all 0.15s', whiteSpace: 'nowrap', fontFamily: 'inherit',
+                      }}
+                    >{item.isOptional === true ? '✓ opcja' : 'opcja'}</button>
                   </div>
 
                   <button className="remove-btn" onClick={() => removeFromQuote(idx)}>×</button>
@@ -489,6 +535,20 @@ const {
             <span>DO ZAPŁATY</span>
             <span>{fmt(doZaplaty)} zł</span>
           </div>
+          {serviceItems.some((item) => item.isOptional === true) && (
+            <div style={{
+              margin: '8px 0', padding: '10px 14px', border: '1px solid #fcd34d',
+              borderLeft: '4px solid #d97706', borderRadius: 8, background: '#fffbeb',
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e' }}>
+                Opcje dodatkowe / poza przedmiarem {includeOptionsInTotal ? '(wliczone w sumę główną)' : '(nie wliczono w sumę główną)'}:
+                {' '}+ {fmt(optionsNet)} zł netto ({fmt(optionsGross)} zł brutto)
+              </div>
+              <div style={{ marginTop: 4, fontSize: 11, color: '#78350f' }}>
+                Razem z opcjami dodatkowymi: {fmt(combinedGross)} zł brutto
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

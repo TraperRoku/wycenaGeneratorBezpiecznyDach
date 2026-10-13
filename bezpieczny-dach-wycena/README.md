@@ -56,6 +56,8 @@ Aby wyczyścić wycenę kliknij przycisk "Wyczyść" w kreatorze.
 - ✅ Katalog usług z cenami bazowymi (edytowalne)
 - ✅ Dodawanie własnych usług i kategorii
 - ✅ Edycja cen i ilości bezpośrednio w wycenie
+- ✅ Oznaczanie usług jako opcjonalnych poza przedmiarem, z osobną sumą netto i brutto
+- ✅ Domyślne nieuwzględnianie opcji w głównej kwocie oferty (można włączyć w ustawieniach PDF)
 - ✅ Rabat procentowy
 - ✅ Różne stawki VAT (23%, 8%, 0%)
 - ✅ Uwagi / warunki płatności
