@@ -13,6 +13,7 @@
     "dayjs": "^1.11.13",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "read-excel-file": "^9.3.12",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

@@ -10,7 +10,7 @@ const CLIENT_FIELDS = [
 ]
 
 export default function Sidebar({ onAddService }) {
-  const { services, quoteItems, client, setClient, addToQuote } = useStore()
+  const { services, client, setClient, addToQuote } = useStore()
   const [search, setSearch] = useState('')
 
   const filteredServices = services.filter(s => 
@@ -19,7 +19,6 @@ export default function Sidebar({ onAddService }) {
   )
 
  const cats = [...new Set(filteredServices.map((s) => s.cat))]
-  const inQuoteIds = new Set(quoteItems.map((i) => i.sid))
 
   return (
     <aside className="sidebar">
@@ -74,29 +73,21 @@ export default function Sidebar({ onAddService }) {
             <div className="cat-title">{cat}</div>
             {filteredServices
               .filter((s) => s.cat === cat)
-              .map((s) => {
-                const added = inQuoteIds.has(s.id)
-                return (
-                  <div
-                    key={s.id}
-                    className={`svc-chip ${added ? 'in-quote' : ''}`}
-                    onClick={() => !added && addToQuote(s.id)}
-                    title={added ? 'Już w wycenie' : 'Kliknij aby dodać'}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="svc-chip-name">{s.name}</div>
-                      <div className="svc-chip-unit">{s.unit}</div>
-                    </div>
-                    <div className="svc-chip-price">{s.price} zł</div>
-                    {!added && (
-                      <div className="svc-chip-add" aria-label="Dodaj">+</div>
-                    )}
-                    {added && (
-                      <div style={{ fontSize: 14, color: 'var(--orange)' }}>✓</div>
-                    )}
+              .map((s) => (
+                <div
+                  key={s.id}
+                  className="svc-chip"
+                  onClick={() => addToQuote(s.id)}
+                  title="Kliknij, aby dodać kolejną pozycję do wyceny"
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="svc-chip-name">{s.name}</div>
+                    <div className="svc-chip-unit">{s.unit}</div>
                   </div>
-                )
-              })}
+                  <div className="svc-chip-price">{s.price} zł</div>
+                  <div className="svc-chip-add" aria-label="Dodaj">+</div>
+                </div>
+              ))}
           </div>
         ))}
       </div>

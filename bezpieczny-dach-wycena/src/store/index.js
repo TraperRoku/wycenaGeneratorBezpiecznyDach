@@ -8,6 +8,21 @@ const freshQuoteNum = () => {
   return `WYC/${d.format('MM')}/${d.format('YYYY')}/001`
 }
 
+const insertIntoActiveSection = (quoteItems, activeSectionId, items) => {
+  const nextItems = [...quoteItems]
+  const sectionIdx = nextItems.findIndex(
+    (item) => item.type === 'section' && item.id === activeSectionId
+  )
+  if (sectionIdx === -1) return [...nextItems, ...items]
+
+  let insertAt = sectionIdx + 1
+  while (insertAt < nextItems.length && nextItems[insertAt].type !== 'section') insertAt += 1
+  nextItems.splice(insertAt, 0, ...items)
+  return nextItems
+}
+
+const newQuoteItemId = () => `item-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
 export const useStore = create(
   persist(
     (set, get) => ({
@@ -72,27 +87,33 @@ export const useStore = create(
 
       addToQuote: (serviceId) => {
         const { services, quoteItems, activeSectionId } = get()
-        if (quoteItems.find((i) => i.type !== 'section' && i.sid === serviceId)) return
         const svc = services.find((s) => s.id === serviceId)
         if (!svc) return
-        const nextItems = [...quoteItems]
         const newItem = {
-          type: 'item',
+          id: newQuoteItemId(), type: 'item',
           sid: serviceId, name: svc.name, unit: svc.unit,
           qty: 1, price: svc.price,
           hasMaterial: false, materialPrice: 0,
           isFlat: false, isOptional: false,
         }
-        const sectionIdx = nextItems.findIndex((item) => item.type === 'section' && item.id === activeSectionId)
-        if (sectionIdx === -1) nextItems.push(newItem)
-        else {
-          let insertAt = sectionIdx + 1
-          while (insertAt < nextItems.length && nextItems[insertAt].type !== 'section') insertAt += 1
-          nextItems.splice(insertAt, 0, newItem)
-        }
-        set({
-          quoteItems: nextItems,
-        })
+        set({ quoteItems: insertIntoActiveSection(quoteItems, activeSectionId, [newItem]) })
+      },
+
+      addQuoteItems: (items) => {
+        if (!items.length) return
+        const { quoteItems, activeSectionId } = get()
+        const newItems = items.map((item) => item.type === 'section'
+          ? { id: newQuoteItemId(), type: 'section', name: item.name }
+          : {
+              id: newQuoteItemId(),
+              type: 'item',
+              hasMaterial: false,
+              materialPrice: 0,
+              isFlat: false,
+              isOptional: false,
+              ...item,
+            })
+        set({ quoteItems: insertIntoActiveSection(quoteItems, activeSectionId, newItems) })
       },
 
       addSection: () => {

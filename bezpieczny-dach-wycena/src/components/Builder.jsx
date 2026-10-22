@@ -1,5 +1,6 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useStore } from '../store'
+import readXlsxFile from 'read-excel-file/browser'
 
 const fmt = (n) => Number(n).toFixed(2)
 const ORANGE       = '#E85D04'
@@ -18,9 +19,9 @@ const FONT_OPTIONS = [
 
 export default function Builder({ onGoPreview }) {
 const {
-  quoteItems, activeSectionId, notes, zaliczka, hidePrices, hideTotals, showSectionTotals,
+  quoteItems, services, activeSectionId, notes, zaliczka, hidePrices, hideTotals, showSectionTotals,
   includeOptionsInTotal, setIncludeOptionsInTotal,
-  updateQuoteItem, removeFromQuote, reorderQuoteItems,
+  updateQuoteItem, removeFromQuote, reorderQuoteItems, addQuoteItems,
   addSection, updateSection, removeSection, setActiveSection, setShowSectionTotals,
   setNotes, setZaliczka, setHidePrices, setHideTotals, clearQuote, getCalc, saveQuote,
   hideFooter, setHideFooter,
@@ -30,6 +31,8 @@ const {
 
   const dragIdx     = useRef(null)
   const dragOverIdx = useRef(null)
+  const importInput = useRef(null)
+  const [editingNameIdx, setEditingNameIdx] = useState(null)
 
   const {
     net, vat, vatRate, gross, laborNet, matNet, zaliczka: zaliczkaCalc, doZaplaty,
@@ -37,6 +40,104 @@ const {
   } = getCalc()
   const serviceItems = quoteItems.filter((item) => item.type !== 'section')
   const anyMaterial = serviceItems.some((it) => it.hasMaterial)
+
+  const importSpreadsheet = async (file) => {
+    try {
+      const sheets = await readXlsxFile(file)
+      const normalize = (value) => String(value ?? '')
+        .toLocaleLowerCase('pl-PL')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '')
+      const nameHeaders = ['nazwa', 'usluga', 'opis', 'pozycja']
+      const qtyHeaders = ['ilosc', 'metry', 'metraz', 'm2', 'qty', 'quantity', 'powierzchnia']
+
+      const normalizedServices = services.map((service) => ({
+        service,
+        name: normalize(service.name),
+      }))
+      const imported = []
+      let skippedRows = 0
+      for (const sheet of sheets) {
+        const rows = sheet.data || []
+        let headerRow = -1
+        let nameColumn = 0
+        let unitColumn = -1
+        let qtyColumn = 1
+
+        for (let rowIndex = 0; rowIndex < Math.min(rows.length, 10); rowIndex += 1) {
+          const cells = rows[rowIndex].map(normalize)
+          const nameIndex = cells.findIndex((cell) => nameHeaders.some((header) => cell.includes(header)))
+          const qtyIndex = cells.findIndex((cell) => qtyHeaders.some((header) => cell.includes(header)))
+          if (nameIndex !== -1 && qtyIndex !== -1) {
+            headerRow = rowIndex
+            nameColumn = nameIndex
+            qtyColumn = qtyIndex
+            unitColumn = cells.findIndex((cell) => ['jedn', 'jednostka', 'unit'].includes(cell))
+            break
+          }
+        }
+
+        let pendingSectionNames = []
+        for (const row of rows.slice(headerRow + 1)) {
+          const name = String(row[nameColumn] ?? '').trim()
+          const quantityCell = row[qtyColumn]
+          const quantityText = String(quantityCell ?? '').replace(/\s/g, '')
+          if (!name && !quantityText) continue
+          if (name && (quantityCell == null || quantityText === '')) {
+            pendingSectionNames.push(name)
+            continue
+          }
+
+          let normalizedQuantity = quantityText
+          if (normalizedQuantity.includes(',') && normalizedQuantity.includes('.')) {
+            normalizedQuantity = normalizedQuantity.lastIndexOf(',') > normalizedQuantity.lastIndexOf('.')
+              ? normalizedQuantity.replace(/\./g, '').replace(',', '.')
+              : normalizedQuantity.replace(/,/g, '')
+          } else {
+            normalizedQuantity = normalizedQuantity.replace(',', '.')
+          }
+          const quantityMatch = normalizedQuantity.match(/^[+-]?(?:\d+\.?\d*|\.\d+)/)
+          const quantity = quantityMatch ? Number(quantityMatch[0]) : NaN
+          if (!name || !Number.isFinite(quantity) || quantity <= 0) {
+            skippedRows += 1
+            continue
+          }
+
+          if (pendingSectionNames.length) {
+            imported.push({
+              type: 'section',
+              name: pendingSectionNames.join(' — '),
+            })
+            pendingSectionNames = []
+          }
+
+          const match = normalizedServices.find((entry) => entry.name === normalize(name))?.service
+          const rawUnit = unitColumn === -1 ? '' : String(row[unitColumn] ?? '').trim()
+          const unit = normalize(rawUnit) === 'm2' ? 'm²' : rawUnit
+          imported.push({
+            sid: match?.id ?? null,
+            name: match?.name || name,
+            unit: unit || match?.unit || 'm²',
+            qty: quantity,
+            price: match?.price ?? 0,
+          })
+        }
+      }
+
+      const importedItemCount = imported.filter((item) => item.type !== 'section').length
+      if (!importedItemCount) {
+        alert('Nie znaleziono w arkuszu poprawnych wierszy z nazwą usługi i ilością. Użyj kolumn „Nazwa usługi” i „Ilość” (lub kolumn A i B).')
+        return
+      }
+
+      addQuoteItems(imported)
+      alert(`Zaimportowano ${importedItemCount} pozycji.${skippedRows ? ` Pominięto ${skippedRows} niepoprawnych wierszy.` : ''}`)
+    } catch (error) {
+      console.error('Nie udało się zaimportować arkusza:', error)
+      alert('Nie udało się odczytać pliku Excel. Sprawdź, czy plik jest poprawnym arkuszem XLSX.')
+    }
+  }
 
   const getRowTotal = (item) => {
     const labor = parseFloat(item.price) || 0
@@ -71,6 +172,22 @@ const {
           </div>
         </div>
         <div className="panel-actions">
+          <input
+            ref={importInput}
+            type="file"
+            accept=".xlsx"
+            aria-label="Importuj pozycje z Excela"
+            title="Wczytaj arkusz XLSX z nazwami usług i ilościami"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) importSpreadsheet(file)
+              e.target.value = ''
+            }}
+          />
+          <button className="btn btn-secondary" onClick={() => importInput.current?.click()}>
+            📥 Import Excel
+          </button>
           {quoteItems.length > 0 && (
             <>
               <button className="btn btn-secondary" onClick={() => {
@@ -337,7 +454,7 @@ const {
             const rowBg = item.isOptional === true ? '#fffbeb' : item.isFlat ? BLUE_LIGHT : item.hasMaterial ? '#FFFAF6' : 'white'
             return (
               <div
-                key={item.sid}
+                key={item.id || `quote-item-${idx}`}
                   draggable
                   onDragStart={() => { dragIdx.current = idx }}
                   onDragEnter={() => { dragOverIdx.current = idx }}
@@ -364,7 +481,34 @@ const {
 
                   <div>
                     <div className="item-name" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                      <span>{item.name}</span>
+                      {editingNameIdx === idx ? (
+                        <input
+                          autoFocus
+                          type="text"
+                          aria-label="Nazwa pozycji wyceny"
+                          value={item.name}
+                          onChange={(e) => updateQuoteItem(idx, 'name', e.target.value)}
+                          onBlur={() => setEditingNameIdx(null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') e.currentTarget.blur()
+                            if (e.key === 'Escape') setEditingNameIdx(null)
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      ) : (
+                        <>
+                          <span onDoubleClick={() => setEditingNameIdx(idx)} title="Kliknij dwukrotnie, aby zmienić nazwę">
+                            {item.name}
+                          </span>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-secondary"
+                            title="Edytuj nazwę pozycji"
+                            aria-label="Edytuj nazwę pozycji"
+                            onClick={() => setEditingNameIdx(idx)}
+                          >✏️</button>
+                        </>
+                      )}
                       {item.isOptional === true && (
                         <span style={{
                           padding: '2px 6px', borderRadius: 4, background: '#fef3c7',

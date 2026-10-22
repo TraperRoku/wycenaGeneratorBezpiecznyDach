@@ -4,14 +4,12 @@ import { useStore } from '../store'
 const UNITS = ['m²', 'mb', 'szt.', 'komplet', 'godz.', 'kpl.']
 
 export default function AddModal({ service, onClose }) {
-  const { addService, updateService, services, addToQuote } = useStore()
-  const cats = [...new Set(services.map((s) => s.cat))]
+  const { addService, updateService, addToQuote } = useStore()
 
   const [form, setForm] = useState({
     name:  '',
     price: '',
     unit:  'm²',
-    cat:   '',
   })
 
   useEffect(() => {
@@ -20,7 +18,6 @@ export default function AddModal({ service, onClose }) {
         name:  service.name,
         price: service.price,
         unit:  service.unit,
-        cat:   service.cat,
       })
     }
   }, [service])
@@ -29,13 +26,12 @@ export default function AddModal({ service, onClose }) {
 
   const handleSave = () => {
     if (!form.name.trim()) { alert('Podaj nazwę usługi'); return }
-    if (!form.cat.trim())  { alert('Podaj kategorię');     return }
 
     const data = {
       name:  form.name.trim(),
       price: parseFloat(form.price) || 0,
       unit:  form.unit,
-      cat:   form.cat.trim(),
+      cat:   service?.cat || 'Inne',
     }
 
     if (service) {
@@ -87,20 +83,6 @@ export default function AddModal({ service, onClose }) {
             </div>
           </div>
 
-          <div className="input-wrap">
-            <label className="input-label">Kategoria *</label>
-            {/* datalist = wpisz własną lub wybierz istniejącą */}
-            <input
-              type="text"
-              list="cats-list"
-              value={form.cat}
-              placeholder="np. Papa termozgrzewalna"
-              onChange={(e) => set('cat', e.target.value)}
-            />
-            <datalist id="cats-list">
-              {cats.map((c) => <option key={c} value={c} />)}
-            </datalist>
-          </div>
         </div>
 
         <div className="modal-actions">

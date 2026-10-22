@@ -138,11 +138,11 @@ const QuoteRows = ({ quoteItems, Row, sc, showSectionTotals, summaryMode, vatRat
               <View style={S.sectionHead}>
                 <Text style={[S.sectionHeadText, { fontSize: sc.base }]}>{name}</Text>
               </View>
-              <Row key={`item-${firstItem.sid ?? firstItemNumber}`} item={firstItem} i={firstItemNumber - 1} sc={sc} />
+              <Row key={`item-${firstItem.id ?? firstItemNumber}`} item={firstItem} i={firstItemNumber - 1} sc={sc} />
             </View>
             {remainingItems.map((sectionItem, sectionItemIdx) => (
               <Row
-                key={`item-${sectionItem.sid ?? firstItemNumber + sectionItemIdx + 1}`}
+                key={`item-${sectionItem.id ?? firstItemNumber + sectionItemIdx + 1}`}
                 item={sectionItem}
                 i={firstItemNumber + sectionItemIdx}
                 sc={sc}
@@ -162,7 +162,7 @@ const QuoteRows = ({ quoteItems, Row, sc, showSectionTotals, summaryMode, vatRat
       i = j - 1
     } else {
       serviceNumber += 1
-      rows.push(<Row key={`item-${item.sid ?? i}`} item={item} i={serviceNumber - 1} sc={sc} />)
+      rows.push(<Row key={`item-${item.id ?? serviceNumber}`} item={item} i={serviceNumber - 1} sc={sc} />)
     }
   }
 
