@@ -411,7 +411,7 @@ export default function QuotePDF({
               {hasOptions && !includeOptionsInTotal && (
                 <View style={S.optionalSummary} wrap={false}>
                   <Text style={[S.optionalSummaryTitle, { fontSize: sc.total }]}>
-                    Wartość prac opcjonalnych (poza przedmiarem): + {fmt(optionsNet)} zł netto / {fmt(optionsGross)} zł brutto
+                    Wartość prac opcjonalnych (poza przedmiarem): + {fmtN(optionsNet)} zł netto / {fmtN(optionsGross)} zł brutto
                   </Text>
                   <Text style={[S.optionalSummaryText, { fontSize: sc.sub }]}>
                     Powyższe pozycje stanowią rekomendację Wykonawcy na podstawie analizy dokumentacji projektowej i nie zostały wliczone do głównej kwoty oferty.

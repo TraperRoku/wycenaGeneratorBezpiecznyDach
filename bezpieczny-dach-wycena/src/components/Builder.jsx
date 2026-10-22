@@ -58,34 +58,49 @@ const {
       }))
       const imported = []
       let skippedRows = 0
-      for (const sheet of sheets) {
+      const sheetConfigs = sheets.map((sheet) => {
         const rows = sheet.data || []
-        let headerRow = -1
-        let nameColumn = 0
-        let unitColumn = -1
-        let qtyColumn = 1
-
         for (let rowIndex = 0; rowIndex < Math.min(rows.length, 10); rowIndex += 1) {
           const cells = rows[rowIndex].map(normalize)
           const nameIndex = cells.findIndex((cell) => nameHeaders.some((header) => cell.includes(header)))
           const qtyIndex = cells.findIndex((cell) => qtyHeaders.some((header) => cell.includes(header)))
           if (nameIndex !== -1 && qtyIndex !== -1) {
-            headerRow = rowIndex
-            nameColumn = nameIndex
-            qtyColumn = qtyIndex
-            unitColumn = cells.findIndex((cell) => ['jedn', 'jednostka', 'unit'].includes(cell))
-            break
+            return {
+              sheet,
+              rows,
+              headerRow: rowIndex,
+              nameColumn: nameIndex,
+              qtyColumn: qtyIndex,
+              unitColumn: cells.findIndex((cell) => ['jedn', 'jednostka', 'unit'].includes(cell)),
+            }
           }
         }
+        return null
+      }).filter(Boolean)
+      const importConfigs = sheetConfigs.length
+        ? sheetConfigs
+        : sheets.slice(0, 1).map((sheet) => ({
+            sheet,
+            rows: sheet.data || [],
+            headerRow: -1,
+            nameColumn: 0,
+            qtyColumn: 1,
+            unitColumn: -1,
+          }))
 
+      for (const config of importConfigs) {
+        const { rows, headerRow, nameColumn, qtyColumn, unitColumn } = config
         let pendingSectionNames = []
         for (const row of rows.slice(headerRow + 1)) {
           const name = String(row[nameColumn] ?? '').trim()
           const quantityCell = row[qtyColumn]
           const quantityText = String(quantityCell ?? '').replace(/\s/g, '')
-          if (!name && !quantityText) continue
-          if (name && (quantityCell == null || quantityText === '')) {
-            pendingSectionNames.push(name)
+          if (!name && !quantityText && !String(row[0] ?? '').trim()) continue
+          if (quantityCell == null || quantityText === '') {
+            const heading = name || String(row[0] ?? '').trim()
+            if (heading && !/^\d+(?:[.,]\d+)?$/.test(heading)) {
+              pendingSectionNames.push(heading)
+            }
             continue
           }
 
