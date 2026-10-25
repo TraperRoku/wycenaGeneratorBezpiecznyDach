@@ -91,6 +91,8 @@ const S = StyleSheet.create({
   notesWrap: { marginTop: 14 },
   noteBox:   { backgroundColor: C.orangePale, borderLeftWidth: 3, borderLeftColor: C.orange, padding: '10 12', borderRadius: 4 },
   noteText:  { color: C.gray700, lineHeight: 1.7 },
+  noteHeading: { color: C.gray900, fontFamily: 'Roboto', fontWeight: 700, marginTop: 3, marginBottom: 3 },
+  noteBullet: { color: C.gray700, lineHeight: 1.7, paddingLeft: 8 },
 
   sigWrap:  { flexDirection: 'row', gap: 40, marginTop: 32 },
   sigBox:   { flex: 1, borderTopWidth: 1, borderTopColor: C.gray300, paddingTop: 6 },
@@ -105,6 +107,24 @@ const S = StyleSheet.create({
 
 const fmtN = (n) => Number(n).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmt  = (n) => fmtN(n) + ' zł'
+
+const NotesContent = ({ notes, sc }) => notes.split(/\r?\n/).map((line, index) => {
+  const trimmedLine = line.trim()
+  if (!trimmedLine) return <View key={index} style={{ height: 4 }} />
+
+  const heading = trimmedLine.match(/^#{1,6}\s+(.+)$/) || trimmedLine.match(/^\*\*(.+)\*\*$/)
+  if (heading) {
+    return <Text key={index} style={[S.noteHeading, { fontSize: sc.sub }]}>{heading[1].replace(/\*\*/g, '')}</Text>
+  }
+
+  const bullet = trimmedLine.match(/^[-*]\s+(.+)$/)
+  if (bullet) {
+    return <Text key={index} style={[S.noteBullet, { fontSize: sc.sub }]}>•  {bullet[1].replace(/\*\*/g, '')}</Text>
+  }
+
+  const cleanLine = trimmedLine.replace(/^#{1,6}\s*/, '').replace(/\*\*/g, '')
+  return <Text key={index} style={[S.noteText, { fontSize: sc.sub }]}>{cleanLine}</Text>
+})
 
 const getRowTotal = (item) => {
   const labor = parseFloat(item.price) || 0
@@ -276,7 +296,9 @@ export default function QuotePDF({
     ? 'qty_only'
     : anyMaterial ? 'material' : 'normal'
 
-  const scopeText = anyMaterial ? 'Wycena obejmuje robociznę i materiał' : 'Wycena obejmuje wyłącznie robociznę'
+  const scopeText = anyMaterial
+    ? 'Wycena obejmuje robociznę i materiał'
+    : 'Robocizna wraz z narzędziami i sprzętem własnym, bez materiałów'
   const scopeClr  = anyMaterial ? C.orange : C.green
   const scopeBg   = anyMaterial ? C.orangePale : C.greenLight
 
@@ -423,9 +445,9 @@ export default function QuotePDF({
 
           {/* ── UWAGI ── */}
           {notes ? (
-            <View wrap={false} style={S.notesWrap}>
+            <View style={S.notesWrap}>
               <Text style={S.sectionTitle}>Uwagi</Text>
-              <View style={S.noteBox}><Text style={[S.noteText, { fontSize: sc.sub }]}>{notes}</Text></View>
+              <View style={S.noteBox}><NotesContent notes={notes} sc={sc} /></View>
             </View>
           ) : null}
         </View>

@@ -17,6 +17,88 @@ const FONT_OPTIONS = [
   { value: 'large',  label: 'Duża',    icon: 'A', desc: 'Czytelniejsza' },
 ]
 
+const NOTES_SECTION_TITLE = '9. PODSTAWA PO STRONIE GENERALNEGO WYKONAWCY'
+const NOTES_TEMPLATES = [
+  {
+    id: 'crane',
+    label: '＋ Dźwig z operatorem',
+    title: '9.1. Transport pionowy materiałów – po stronie GW',
+    text: `Generalny Wykonawca zapewnia dźwig wraz z operatorem do transportu pionowego materiałów na dach, bez dodatkowych kosztów po stronie Podwykonawcy.
+
+Po stronie Podwykonawcy pozostaje:
+- uzgadnianie terminów pracy dźwigu z operatorem lub koordynatorem GW,
+- przygotowanie i podpinanie ładunków do transportu przez uprawnione osoby,
+- odbiór i rozprowadzenie materiałów na dachu.`,
+  },
+  {
+    id: 'container',
+    label: '＋ Kontener i utylizacja',
+    title: '9.2. Kontener na odpady i ich utylizacja – po stronie GW',
+    text: `Generalny Wykonawca zapewnia kontenery na odpady budowlane, ich odbiór, wywóz oraz zgodne z przepisami zagospodarowanie, bez dodatkowych kosztów po stronie Podwykonawcy.
+
+Po stronie Podwykonawcy pozostaje:
+- bieżące segregowanie odpadów powstałych podczas prowadzonych robót,
+- gromadzenie odpadów w wyznaczonych miejscach,
+- transport odpadów do kontenerów zapewnionych przez GW.`,
+  },
+]
+
+const parseCsv = (text) => {
+  const content = text.replace(/^\uFEFF/, '')
+  const firstLine = content.split(/\r?\n/).find((line) => line.trim()) || ''
+  const delimiters = [';', ',', '\t']
+  let delimiter = ';'
+  let maxDelimiterCount = -1
+  for (const candidate of delimiters) {
+    let count = 0
+    let inQuotes = false
+    for (let index = 0; index < firstLine.length; index += 1) {
+      if (firstLine[index] === '"') {
+        if (inQuotes && firstLine[index + 1] === '"') index += 1
+        else inQuotes = !inQuotes
+      } else if (!inQuotes && firstLine[index] === candidate) {
+        count += 1
+      }
+    }
+    if (count > maxDelimiterCount) {
+      delimiter = candidate
+      maxDelimiterCount = count
+    }
+  }
+
+  const rows = []
+  let row = []
+  let field = ''
+  let inQuotes = false
+  for (let index = 0; index < content.length; index += 1) {
+    const character = content[index]
+    if (character === '"') {
+      if (inQuotes && content[index + 1] === '"') {
+        field += '"'
+        index += 1
+      } else {
+        inQuotes = !inQuotes
+      }
+    } else if (!inQuotes && character === delimiter) {
+      row.push(field)
+      field = ''
+    } else if (!inQuotes && (character === '\n' || character === '\r')) {
+      if (character === '\r' && content[index + 1] === '\n') index += 1
+      row.push(field)
+      rows.push(row)
+      row = []
+      field = ''
+    } else {
+      field += character
+    }
+  }
+  if (field || row.length) {
+    row.push(field)
+    rows.push(row)
+  }
+  return rows
+}
+
 export default function Builder({ onGoPreview }) {
 const {
   quoteItems, services, activeSectionId, notes, zaliczka, hidePrices, hideTotals, showSectionTotals,
@@ -33,6 +115,8 @@ const {
   const dragOverIdx = useRef(null)
   const importInput = useRef(null)
   const [editingNameIdx, setEditingNameIdx] = useState(null)
+  const [csvModalOpen, setCsvModalOpen] = useState(false)
+  const [csvText, setCsvText] = useState('')
 
   const {
     net, vat, vatRate, gross, laborNet, matNet, zaliczka: zaliczkaCalc, doZaplaty,
@@ -41,9 +125,19 @@ const {
   const serviceItems = quoteItems.filter((item) => item.type !== 'section')
   const anyMaterial = serviceItems.some((it) => it.hasMaterial)
 
-  const importSpreadsheet = async (file) => {
+  const insertNotesTemplate = (template) => {
+    if (notes.includes(template.title)) return
+    const sectionTitle = notes.includes(NOTES_SECTION_TITLE) ? '' : `### ${NOTES_SECTION_TITLE}\n\n`
+    const separator = notes.trim() ? '\n\n' : ''
+    setNotes(`${notes.trimEnd()}${separator}${sectionTitle}**${template.title}**\n\n${template.text}`)
+  }
+
+  const importFile = async (file) => {
     try {
-      const sheets = await readXlsxFile(file)
+      const isCsv = file.name.toLowerCase().endsWith('.csv')
+      const sheets = isCsv
+        ? [{ data: parseCsv(await file.text()) }]
+        : await readXlsxFile(file)
       const normalize = (value) => String(value ?? '')
         .toLocaleLowerCase('pl-PL')
         .normalize('NFD')
@@ -72,6 +166,7 @@ const {
               nameColumn: nameIndex,
               qtyColumn: qtyIndex,
               unitColumn: cells.findIndex((cell) => ['jedn', 'jednostka', 'unit'].includes(cell)),
+              priceColumn: isCsv ? cells.findIndex((cell) => cell.includes('cena') || ['price', 'unitprice'].includes(cell)) : -1,
             }
           }
         }
@@ -89,7 +184,7 @@ const {
           }))
 
       for (const config of importConfigs) {
-        const { rows, headerRow, nameColumn, qtyColumn, unitColumn } = config
+        const { rows, headerRow, nameColumn, qtyColumn, unitColumn, priceColumn = -1 } = config
         let pendingSectionNames = []
         for (const row of rows.slice(headerRow + 1)) {
           const name = String(row[nameColumn] ?? '').trim()
@@ -130,27 +225,53 @@ const {
           const match = normalizedServices.find((entry) => entry.name === normalize(name))?.service
           const rawUnit = unitColumn === -1 ? '' : String(row[unitColumn] ?? '').trim()
           const unit = normalize(rawUnit) === 'm2' ? 'm²' : rawUnit
+          const priceText = priceColumn === -1 ? '' : String(row[priceColumn] ?? '').replace(/\s/g, '')
+          let normalizedPrice = priceText
+          if (normalizedPrice.includes(',') && normalizedPrice.includes('.')) {
+            normalizedPrice = normalizedPrice.lastIndexOf(',') > normalizedPrice.lastIndexOf('.')
+              ? normalizedPrice.replace(/\./g, '').replace(',', '.')
+              : normalizedPrice.replace(/,/g, '')
+          } else {
+            normalizedPrice = normalizedPrice.replace(',', '.')
+          }
+          const parsedPrice = Number(normalizedPrice.replace(/[^\d.+-]/g, ''))
           imported.push({
             sid: match?.id ?? null,
             name: match?.name || name,
             unit: unit || match?.unit || 'm²',
             qty: quantity,
-            price: match?.price ?? 0,
+            price: priceText && Number.isFinite(parsedPrice) && parsedPrice >= 0
+              ? parsedPrice
+              : match?.price ?? 0,
           })
         }
       }
 
       const importedItemCount = imported.filter((item) => item.type !== 'section').length
       if (!importedItemCount) {
-        alert('Nie znaleziono w arkuszu poprawnych wierszy z nazwą usługi i ilością. Użyj kolumn „Nazwa usługi” i „Ilość” (lub kolumn A i B).')
-        return
+        alert('Nie znaleziono w pliku poprawnych wierszy z nazwą usługi i ilością. Użyj kolumn „Nazwa usługi” i „Ilość” (lub kolumn A i B).')
+        return false
       }
 
       addQuoteItems(imported)
       alert(`Zaimportowano ${importedItemCount} pozycji.${skippedRows ? ` Pominięto ${skippedRows} niepoprawnych wierszy.` : ''}`)
+      return true
     } catch (error) {
-      console.error('Nie udało się zaimportować arkusza:', error)
-      alert('Nie udało się odczytać pliku Excel. Sprawdź, czy plik jest poprawnym arkuszem XLSX.')
+      console.error('Nie udało się zaimportować pliku:', error)
+      alert('Nie udało się odczytać pliku. Sprawdź, czy jest poprawnym plikiem CSV lub arkuszem XLSX.')
+      return false
+    }
+  }
+
+  const importPastedCsv = async () => {
+    if (!csvText.trim()) {
+      alert('Wklej najpierw zawartość pliku CSV.')
+      return
+    }
+    const imported = await importFile(new File([csvText], 'wklejony.csv', { type: 'text/csv' }))
+    if (imported) {
+      setCsvText('')
+      setCsvModalOpen(false)
     }
   }
 
@@ -190,18 +311,21 @@ const {
           <input
             ref={importInput}
             type="file"
-            accept=".xlsx"
-            aria-label="Importuj pozycje z Excela"
-            title="Wczytaj arkusz XLSX z nazwami usług i ilościami"
+            accept=".xlsx,.csv,text/csv"
+            aria-label="Importuj pozycje z Excela lub CSV"
+            title="Wczytaj plik XLSX lub CSV z nazwami usług i ilościami"
             style={{ display: 'none' }}
             onChange={(e) => {
               const file = e.target.files?.[0]
-              if (file) importSpreadsheet(file)
+              if (file) importFile(file)
               e.target.value = ''
             }}
           />
           <button className="btn btn-secondary" onClick={() => importInput.current?.click()}>
-            📥 Import Excel
+            📥 Import Excel/CSV
+          </button>
+          <button className="btn btn-secondary" onClick={() => setCsvModalOpen(true)}>
+            📋 Wklej CSV
           </button>
           {quoteItems.length > 0 && (
             <>
@@ -215,6 +339,35 @@ const {
           <button className="btn btn-primary" onClick={onGoPreview}>Podgląd PDF →</button>
         </div>
       </div>
+
+      {csvModalOpen && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setCsvModalOpen(false)}>
+          <div className="modal" style={{ width: 760 }}>
+            <div className="modal-title">📋 Wklej dane CSV</div>
+            <div className="modal-body">
+              <label className="input-label" htmlFor="csv-import-text">
+                Wklej tekst CSV (kolumny rozdzielone średnikami lub przecinkami)
+              </label>
+              <textarea
+                id="csv-import-text"
+                value={csvText}
+                onChange={(e) => setCsvText(e.target.value)}
+                placeholder={'LP;OPIS;JEDNOSTKA;ILOŚĆ;CENA / JEDN.;WARTOŚĆ;UWAGI\n1;Nazwa usługi;m²;10,5;100,00;1050,00;Uwagi'}
+                autoFocus
+                style={{ minHeight: 280, fontFamily: 'monospace', fontSize: 12 }}
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setCsvModalOpen(false)}>
+                Anuluj
+              </button>
+              <button className="btn btn-primary" onClick={importPastedCsv}>
+                Importuj pozycje
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Ustawienia PDF ── */}
       {quoteItems.length > 0 && (
@@ -635,8 +788,25 @@ const {
       {/* ── Uwagi ── */}
       <div className="notes-section">
         <label className="input-label">Uwagi / warunki płatności / termin realizacji</label>
-        <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-          placeholder="np. Termin realizacji: 14 dni od podpisania umowy. Płatność: 30 dni. Gwarancja: 5 lat." />
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+          {NOTES_TEMPLATES.map((template) => (
+            <button
+              key={template.id}
+              className="btn btn-secondary"
+              type="button"
+              onClick={() => insertNotesTemplate(template)}
+              title={`Wstaw gotowy zapis: ${template.title}`}
+            >
+              {template.label}
+            </button>
+          ))}
+        </div>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Wpisz uwagi lub skorzystaj z gotowych zapisów powyżej. Możesz je później dowolnie edytować."
+          style={{ minHeight: 180, lineHeight: 1.6 }}
+        />
       </div>
 
       {      serviceItems.length > 0 && (
