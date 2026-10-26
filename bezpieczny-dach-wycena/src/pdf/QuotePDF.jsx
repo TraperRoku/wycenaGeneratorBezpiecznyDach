@@ -127,6 +127,7 @@ const NotesContent = ({ notes, sc }) => notes.split(/\r?\n/).map((line, index) =
 })
 
 const getRowTotal = (item) => {
+  if (item.isMeasuredAfterWork === true) return 0
   const labor = parseFloat(item.price) || 0
   const mat   = item.hasMaterial ? (parseFloat(item.materialPrice) || 0) : 0
   return item.isFlat ? labor + mat : (labor + mat) * (parseFloat(item.qty) || 0)
@@ -144,7 +145,9 @@ const QuoteRows = ({ quoteItems, Row, sc, showSectionTotals, summaryMode, vatRat
       let j = i + 1
       while (j < quoteItems.length && quoteItems[j].type !== 'section') {
         sectionItems.push(quoteItems[j])
-        if (includeOptionsInTotal || quoteItems[j].isOptional !== true) sectionNet += getRowTotal(quoteItems[j])
+        if (quoteItems[j].isMeasuredAfterWork !== true && (includeOptionsInTotal || quoteItems[j].isOptional !== true)) {
+          sectionNet += getRowTotal(quoteItems[j])
+        }
         j += 1
       }
       const name = item.name || 'Dział'
@@ -194,16 +197,23 @@ const NormalRow = ({ item, i, sc }) => (
     <Text style={[{ fontSize: sc.lp, color: C.gray500 }, S.nLp]}>{i + 1}</Text>
     <View style={S.nName}>
       <Text style={{ fontSize: sc.base, color: C.gray900 }}>{item.name}</Text>
-      {item.isOptional === true && <Text style={S.optionalNote}>OPCJA (poza przedmiarem)</Text>}
+      {item.isOptional === true && <Text style={S.optionalNote}>
+        {item.isMeasuredAfterWork === true ? 'OPCJA · rozliczenie wg faktycznego obmiaru' : 'OPCJA (poza przedmiarem)'}
+      </Text>}
       <Text style={{ fontSize: sc.sub, color: C.gray500, marginTop: 1 }}>{item.isFlat ? 'ryczałt' : item.unit}</Text>
     </View>
     <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.nQty]}>
-      {item.isFlat ? '—' : `${fmtN(item.qty)} ${item.unit}`}
+      {item.isFlat ? '—' : item.isMeasuredAfterWork === true ? 'wg obmiaru' : `${fmtN(item.qty)} ${item.unit}`}
     </Text>
     <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.nPrice]}>
-      {item.isFlat ? '—' : `${fmtN(item.price)} zł`}
+      {item.isFlat ? '—' : `${fmtN(item.price)} zł${item.isMeasuredAfterWork === true ? `/${item.unit}` : ''}`}
     </Text>
-    {item.isOptional === true ? (
+    {item.isMeasuredAfterWork === true ? (
+      <View style={S.optionalTotal}>
+        <Text style={[{ fontSize: sc.sub, color: '#92400e' }, S.tdBold]}>wg obmiaru</Text>
+        <Text style={S.optionalNote}>po wykonaniu</Text>
+      </View>
+    ) : item.isOptional === true ? (
       <View style={S.optionalTotal}>
         <Text style={[{ fontSize: sc.base, color: '#92400e' }, S.tdBold]}>+ {fmtN(getRowTotal(item))}</Text>
         <Text style={S.optionalNote}>zł (opcja)</Text>
@@ -217,10 +227,12 @@ const MaterialRow = ({ item, i, sc }) => (
     <Text style={[{ fontSize: sc.lp, color: C.gray500 }, S.mLp]}>{i + 1}</Text>
     <View style={S.mName}>
       <Text style={{ fontSize: sc.base, color: C.gray900 }}>{item.name}</Text>
-      {item.isOptional === true && <Text style={S.optionalNote}>OPCJA (poza przedmiarem)</Text>}
+      {item.isOptional === true && <Text style={S.optionalNote}>
+        {item.isMeasuredAfterWork === true ? 'OPCJA · rozliczenie wg faktycznego obmiaru' : 'OPCJA (poza przedmiarem)'}
+      </Text>}
     </View>
     <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.mQty]}>
-      {item.isFlat ? 'ryczałt' : `${fmtN(item.qty)} ${item.unit}`}
+      {item.isFlat ? 'ryczałt' : item.isMeasuredAfterWork === true ? 'wg obmiaru' : `${fmtN(item.qty)} ${item.unit}`}
     </Text>
     <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.mLabor]}>
       {item.isFlat ? `${fmtN(item.price)} zł` : `${fmtN(item.price)} zł/${item.unit}`}
@@ -228,7 +240,12 @@ const MaterialRow = ({ item, i, sc }) => (
     <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.mMat]}>
       {!item.hasMaterial ? '—' : item.isFlat ? `${fmtN(item.materialPrice)} zł` : `${fmtN(item.materialPrice)} zł/${item.unit}`}
     </Text>
-    {item.isOptional === true ? (
+    {item.isMeasuredAfterWork === true ? (
+      <View style={[S.optionalTotal, { width: 82 }]}>
+        <Text style={[{ fontSize: sc.sub, color: '#92400e' }, S.tdBold]}>wg obmiaru</Text>
+        <Text style={S.optionalNote}>po wykonaniu</Text>
+      </View>
+    ) : item.isOptional === true ? (
       <View style={[S.optionalTotal, { width: 82 }]}>
         <Text style={[{ fontSize: sc.base, color: '#92400e' }, S.tdBold]}>+ {fmtN(getRowTotal(item))}</Text>
         <Text style={S.optionalNote}>zł (opcja)</Text>
@@ -242,7 +259,9 @@ const SimpleRow = ({ item, i, sc }) => (
     <Text style={[{ fontSize: sc.lp, color: C.gray500 }, S.sLp]}>{i + 1}</Text>
     <View style={S.sName}>
       <Text style={{ fontSize: sc.base, color: C.gray900 }}>{item.name}</Text>
-      {item.isOptional === true && <Text style={S.optionalNote}>OPCJA (poza przedmiarem)</Text>}
+      {item.isOptional === true && <Text style={S.optionalNote}>
+        {item.isMeasuredAfterWork === true ? 'OPCJA · rozliczenie wg faktycznego obmiaru' : 'OPCJA (poza przedmiarem)'}
+      </Text>}
     </View>
   </View>
 )
@@ -261,7 +280,7 @@ const QtyRow = ({ item, i, sc }) => (
       </Text>
     </View>
     <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.qQty]}>
-      {item.isFlat ? '—' : `${fmtN(item.qty)} ${item.unit}`}
+      {item.isFlat ? '—' : item.isMeasuredAfterWork === true ? 'wg obmiaru' : `${fmtN(item.qty)} ${item.unit}`}
     </Text>
   </View>
 )
@@ -289,6 +308,8 @@ export default function QuotePDF({
 
   const services = quoteItems.filter((it) => it.type !== 'section')
   const hasOptions = services.some((it) => it.isOptional === true)
+  const hasMeasuredOptions = services.some((it) => it.isOptional === true && it.isMeasuredAfterWork === true)
+  const hasPricedOptions = services.some((it) => it.isOptional === true && it.isMeasuredAfterWork !== true)
   const anyMaterial = services.some((it) => it.hasMaterial)
   const tableMode = hidePrices === true
     ? 'simple'
@@ -430,14 +451,23 @@ export default function QuotePDF({
                 </Text>
                 <Text style={[S.totalMainTxt, { fontSize: sc.totalMain }]}>{fmt(doZaplatyDisplay)}</Text>
               </View>
-              {hasOptions && !includeOptionsInTotal && (
+              {hasOptions && (!includeOptionsInTotal || hasMeasuredOptions) && (
                 <View style={S.optionalSummary} wrap={false}>
-                  <Text style={[S.optionalSummaryTitle, { fontSize: sc.total }]}>
-                    Wartość prac opcjonalnych (poza przedmiarem): + {fmtN(optionsNet)} zł netto / {fmtN(optionsGross)} zł brutto
-                  </Text>
-                  <Text style={[S.optionalSummaryText, { fontSize: sc.sub }]}>
-                    Powyższe pozycje stanowią rekomendację Wykonawcy na podstawie analizy dokumentacji projektowej i nie zostały wliczone do głównej kwoty oferty.
-                  </Text>
+                  {hasPricedOptions && !includeOptionsInTotal && (
+                    <>
+                      <Text style={[S.optionalSummaryTitle, { fontSize: sc.total }]}>
+                        Wartość prac opcjonalnych (poza przedmiarem): + {fmtN(optionsNet)} zł netto / {fmtN(optionsGross)} zł brutto
+                      </Text>
+                      <Text style={[S.optionalSummaryText, { fontSize: sc.sub }]}>
+                        Powyższe pozycje stanowią rekomendację Wykonawcy na podstawie analizy dokumentacji projektowej i nie zostały wliczone do głównej kwoty oferty.
+                      </Text>
+                    </>
+                  )}
+                  {hasMeasuredOptions && (
+                    <Text style={[S.optionalSummaryText, { fontSize: sc.sub }]}>
+                      Pozycje oznaczone „wg obmiaru” rozliczane są po wykonaniu według faktycznie oczyszczonej powierzchni i nie są wliczone do sumy wyceny.
+                    </Text>
+                  )}
                 </View>
               )}
             </View>

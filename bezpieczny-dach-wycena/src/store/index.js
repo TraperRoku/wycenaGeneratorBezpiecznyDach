@@ -179,18 +179,20 @@ export const useStore = create(
         const items = quoteItems.filter((item) => item.type !== 'section')
 
         const sumLabor = (selectedItems) => selectedItems.reduce((acc, it) => {
+          if (it.isMeasuredAfterWork === true) return acc
           const labor = parseFloat(it.price) || 0
           return acc + (it.isFlat ? labor : labor * (parseFloat(it.qty) || 0))
         }, 0)
 
         const sumMaterial = (selectedItems) => selectedItems.reduce((acc, it) => {
+          if (it.isMeasuredAfterWork === true) return acc
           if (!it.hasMaterial) return acc
           const mat = parseFloat(it.materialPrice) || 0
           return acc + (it.isFlat ? mat : mat * (parseFloat(it.qty) || 0))
         }, 0)
 
-        const baseItems = items.filter((it) => it.isOptional !== true)
-        const optionItems = items.filter((it) => it.isOptional === true)
+        const baseItems = items.filter((it) => it.isOptional !== true && it.isMeasuredAfterWork !== true)
+        const optionItems = items.filter((it) => it.isOptional === true && it.isMeasuredAfterWork !== true)
         const baseLaborNet = sumLabor(baseItems)
         const baseMatNet = sumMaterial(baseItems)
         const baseNet = baseLaborNet + baseMatNet
