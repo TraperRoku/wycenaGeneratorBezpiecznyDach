@@ -28,7 +28,7 @@ export const useStore = create(
     (set, get) => ({
       services: DEFAULT_SERVICES,
 
-      hideFooter: false,
+      hideFooter: true,
       setHideFooter: (val) => set({ hideFooter: val }),
 
       addService: (svc) => {
@@ -69,7 +69,7 @@ export const useStore = create(
       hideTotals: false,
       showSectionTotals: true,
       includeOptionsInTotal: false,
-      summaryMode: 'brutto', // 'brutto' | 'netto' — który wariant kwoty pokazujemy w podsumowaniu
+      summaryMode: 'netto', // 'brutto' | 'netto' — który wariant kwoty pokazujemy w podsumowaniu
       pdfFontSize: 'normal', // 'small' | 'normal' | 'large'
       documentType: 'Wycena', // 'Wycena' | 'Kosztorys'
 
@@ -163,9 +163,9 @@ export const useStore = create(
       clearQuote: () =>
         set({
           quoteItems: [], activeSectionId: null, notes: '', zaliczka: 0,
-          hidePrices: false, hideTotals: false, showSectionTotals: true, hideFooter: false,
+          hidePrices: false, hideTotals: false, showSectionTotals: true, hideFooter: true,
           includeOptionsInTotal: false,
-          summaryMode: 'brutto',
+          summaryMode: 'netto',
           pdfFontSize: 'normal',
           documentType: 'Wycena',
           client: {
@@ -259,9 +259,9 @@ export const useStore = create(
           hidePrices,
           hideTotals: hideTotals || false,
           showSectionTotals: showSectionTotals !== false,
-          hideFooter: hideFooter || false,
+          hideFooter: hideFooter ?? true,
           includeOptionsInTotal: includeOptionsInTotal === true,
-          summaryMode: summaryMode || 'brutto',
+          summaryMode: summaryMode ?? 'netto',
           pdfFontSize: pdfFontSize || 'normal',
           documentType: documentType || 'Wycena',
         })

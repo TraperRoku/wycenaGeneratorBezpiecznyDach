@@ -193,12 +193,14 @@ const QuoteRows = ({ quoteItems, Row, sc, showSectionTotals, summaryMode, vatRat
 }
 
 const NormalRow = ({ item, i, sc }) => (
-  <View wrap={false} style={[{ flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center', borderLeftWidth: item.isOptional === true ? 2 : 0, borderLeftColor: '#d97706' }, i % 2 === 1 ? S.tableRowAlt : {}]}>
+  <View wrap={false} style={[{ flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center', borderLeftWidth: item.isOptional === true || item.isMeasuredAfterWork === true ? 2 : 0, borderLeftColor: '#d97706' }, i % 2 === 1 ? S.tableRowAlt : {}]}>
     <Text style={[{ fontSize: sc.lp, color: C.gray500 }, S.nLp]}>{i + 1}</Text>
     <View style={S.nName}>
       <Text style={{ fontSize: sc.base, color: C.gray900 }}>{item.name}</Text>
-      {item.isOptional === true && <Text style={S.optionalNote}>
-        {item.isMeasuredAfterWork === true ? 'OPCJA · rozliczenie wg faktycznego obmiaru' : 'OPCJA (poza przedmiarem)'}
+      {(item.isOptional === true || item.isMeasuredAfterWork === true) && <Text style={S.optionalNote}>
+        {item.isMeasuredAfterWork === true
+          ? item.isOptional === true ? 'OPCJA · rozliczenie wg faktycznego obmiaru' : 'Rozliczenie wg faktycznego obmiaru'
+          : 'OPCJA (poza przedmiarem)'}
       </Text>}
       <Text style={{ fontSize: sc.sub, color: C.gray500, marginTop: 1 }}>{item.isFlat ? 'ryczałt' : item.unit}</Text>
     </View>
@@ -223,12 +225,14 @@ const NormalRow = ({ item, i, sc }) => (
 )
 
 const MaterialRow = ({ item, i, sc }) => (
-  <View wrap={false} style={[{ flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center', borderLeftWidth: item.isOptional === true ? 2 : 0, borderLeftColor: '#d97706' }, i % 2 === 1 ? S.tableRowAlt : {}]}>
+  <View wrap={false} style={[{ flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center', borderLeftWidth: item.isOptional === true || item.isMeasuredAfterWork === true ? 2 : 0, borderLeftColor: '#d97706' }, i % 2 === 1 ? S.tableRowAlt : {}]}>
     <Text style={[{ fontSize: sc.lp, color: C.gray500 }, S.mLp]}>{i + 1}</Text>
     <View style={S.mName}>
       <Text style={{ fontSize: sc.base, color: C.gray900 }}>{item.name}</Text>
-      {item.isOptional === true && <Text style={S.optionalNote}>
-        {item.isMeasuredAfterWork === true ? 'OPCJA · rozliczenie wg faktycznego obmiaru' : 'OPCJA (poza przedmiarem)'}
+      {(item.isOptional === true || item.isMeasuredAfterWork === true) && <Text style={S.optionalNote}>
+        {item.isMeasuredAfterWork === true
+          ? item.isOptional === true ? 'OPCJA · rozliczenie wg faktycznego obmiaru' : 'Rozliczenie wg faktycznego obmiaru'
+          : 'OPCJA (poza przedmiarem)'}
       </Text>}
     </View>
     <Text style={[{ fontSize: sc.base, color: C.gray900 }, S.mQty]}>
@@ -255,12 +259,14 @@ const MaterialRow = ({ item, i, sc }) => (
 )
 
 const SimpleRow = ({ item, i, sc }) => (
-  <View wrap={false} style={[{ flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center', borderLeftWidth: item.isOptional === true ? 2 : 0, borderLeftColor: '#d97706' }, i % 2 === 1 ? S.tableRowAlt : {}]}>
+  <View wrap={false} style={[{ flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center', borderLeftWidth: item.isOptional === true || item.isMeasuredAfterWork === true ? 2 : 0, borderLeftColor: '#d97706' }, i % 2 === 1 ? S.tableRowAlt : {}]}>
     <Text style={[{ fontSize: sc.lp, color: C.gray500 }, S.sLp]}>{i + 1}</Text>
     <View style={S.sName}>
       <Text style={{ fontSize: sc.base, color: C.gray900 }}>{item.name}</Text>
-      {item.isOptional === true && <Text style={S.optionalNote}>
-        {item.isMeasuredAfterWork === true ? 'OPCJA · rozliczenie wg faktycznego obmiaru' : 'OPCJA (poza przedmiarem)'}
+      {(item.isOptional === true || item.isMeasuredAfterWork === true) && <Text style={S.optionalNote}>
+        {item.isMeasuredAfterWork === true
+          ? item.isOptional === true ? 'OPCJA · rozliczenie wg faktycznego obmiaru' : 'Rozliczenie wg faktycznego obmiaru'
+          : 'OPCJA (poza przedmiarem)'}
       </Text>}
     </View>
   </View>
@@ -268,13 +274,17 @@ const SimpleRow = ({ item, i, sc }) => (
 
 const QtyRow = ({ item, i, sc }) => (
   <View wrap={false} style={[
-    { flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center', borderLeftWidth: item.isOptional === true ? 2 : 0, borderLeftColor: '#d97706' },
+    { flexDirection: 'row', padding: `${sc.rowPad} 10`, borderBottomWidth: 0.5, borderBottomColor: C.gray100, alignItems: 'center', borderLeftWidth: item.isOptional === true || item.isMeasuredAfterWork === true ? 2 : 0, borderLeftColor: '#d97706' },
     i % 2 === 1 ? S.tableRowAlt : {}
   ]}>
     <Text style={[{ fontSize: sc.lp, color: C.gray500 }, S.qLp]}>{i + 1}</Text>
     <View style={S.qName}>
       <Text style={{ fontSize: sc.base, color: C.gray900 }}>{item.name}</Text>
-      {item.isOptional === true && <Text style={S.optionalNote}>OPCJA (poza przedmiarem)</Text>}
+      {(item.isOptional === true || item.isMeasuredAfterWork === true) && <Text style={S.optionalNote}>
+        {item.isMeasuredAfterWork === true
+          ? item.isOptional === true ? 'OPCJA · rozliczenie wg faktycznego obmiaru' : 'Rozliczenie wg faktycznego obmiaru'
+          : 'OPCJA (poza przedmiarem)'}
+      </Text>}
       <Text style={{ fontSize: sc.sub, color: C.gray500, marginTop: 1 }}>
         {item.isFlat ? 'ryczałt' : item.unit}
       </Text>
@@ -308,7 +318,7 @@ export default function QuotePDF({
 
   const services = quoteItems.filter((it) => it.type !== 'section')
   const hasOptions = services.some((it) => it.isOptional === true)
-  const hasMeasuredOptions = services.some((it) => it.isOptional === true && it.isMeasuredAfterWork === true)
+  const hasMeasuredItems = services.some((it) => it.isMeasuredAfterWork === true)
   const hasPricedOptions = services.some((it) => it.isOptional === true && it.isMeasuredAfterWork !== true)
   const anyMaterial = services.some((it) => it.hasMaterial)
   const tableMode = hidePrices === true
@@ -451,7 +461,7 @@ export default function QuotePDF({
                 </Text>
                 <Text style={[S.totalMainTxt, { fontSize: sc.totalMain }]}>{fmt(doZaplatyDisplay)}</Text>
               </View>
-              {hasOptions && (!includeOptionsInTotal || hasMeasuredOptions) && (
+              {((hasOptions && !includeOptionsInTotal) || hasMeasuredItems) && (
                 <View style={S.optionalSummary} wrap={false}>
                   {hasPricedOptions && !includeOptionsInTotal && (
                     <>
@@ -463,7 +473,7 @@ export default function QuotePDF({
                       </Text>
                     </>
                   )}
-                  {hasMeasuredOptions && (
+                  {hasMeasuredItems && (
                     <Text style={[S.optionalSummaryText, { fontSize: sc.sub }]}>
                       Pozycje oznaczone „wg obmiaru” rozliczane są po wykonaniu według faktycznie oczyszczonej powierzchni i nie są wliczone do sumy wyceny.
                     </Text>

@@ -17,12 +17,13 @@ const FONT_OPTIONS = [
   { value: 'large',  label: 'Duża',    icon: 'A', desc: 'Czytelniejsza' },
 ]
 
-const NOTES_SECTION_TITLE = '9. PODSTAWA PO STRONIE GENERALNEGO WYKONAWCY'
+const NOTES_SECTION_NAME = 'PODSTAWA PO STRONIE GENERALNEGO WYKONAWCY'
 const NOTES_TEMPLATES = [
   {
     id: 'crane',
     label: '＋ Dźwig z operatorem',
-    title: '9.1. Transport pionowy materiałów – po stronie GW',
+    subsection: 1,
+    title: 'Transport pionowy materiałów – po stronie GW',
     text: `Generalny Wykonawca zapewnia dźwig wraz z operatorem do transportu pionowego materiałów na dach, bez dodatkowych kosztów po stronie Podwykonawcy.
 
 Po stronie Podwykonawcy pozostaje:
@@ -33,7 +34,8 @@ Po stronie Podwykonawcy pozostaje:
   {
     id: 'container',
     label: '＋ Kontener i utylizacja',
-    title: '9.2. Kontener na odpady i ich utylizacja – po stronie GW',
+    subsection: 2,
+    title: 'Kontener na odpady i ich utylizacja – po stronie GW',
     text: `Generalny Wykonawca zapewnia kontenery na odpady budowlane, ich odbiór, wywóz oraz zgodne z przepisami zagospodarowanie, bez dodatkowych kosztów po stronie Podwykonawcy.
 
 Po stronie Podwykonawcy pozostaje:
@@ -129,14 +131,20 @@ const {
   } = getCalc()
   const serviceItems = quoteItems.filter((item) => item.type !== 'section')
   const anyMaterial = serviceItems.some((it) => it.hasMaterial)
-  const hasMeasuredOptions = serviceItems.some((item) => item.isOptional === true && item.isMeasuredAfterWork === true)
+  const hasMeasuredItems = serviceItems.some((item) => item.isMeasuredAfterWork === true)
   const hasPricedOptions = serviceItems.some((item) => item.isOptional === true && item.isMeasuredAfterWork !== true)
 
   const insertNotesTemplate = (template) => {
     if (notes.includes(template.title)) return
-    const sectionTitle = notes.includes(NOTES_SECTION_TITLE) ? '' : `### ${NOTES_SECTION_TITLE}\n\n`
+    const headingPattern = /^###\s+(\d+)\.\s+PODSTAWA PO STRONIE GENERALNEGO WYKONAWCY\s*$/m
+    const existingHeading = notes.match(headingPattern)
+    const sectionNumber = existingHeading
+      ? Number(existingHeading[1])
+      : quoteItems.filter((item) => item.type === 'section').length + 1
+    const sectionTitle = existingHeading ? '' : `### ${sectionNumber}. ${NOTES_SECTION_NAME}\n\n`
+    const templateTitle = `${sectionNumber}.${template.subsection}. ${template.title}`
     const separator = notes.trim() ? '\n\n' : ''
-    setNotes(`${notes.trimEnd()}${separator}${sectionTitle}**${template.title}**\n\n${template.text}`)
+    setNotes(`${notes.trimEnd()}${separator}${sectionTitle}**${templateTitle}**\n\n${template.text}`)
   }
 
   const exportCsv = () => {
@@ -400,7 +408,7 @@ const {
             materialPrice: hasMaterial && Number.isFinite(parsedMaterialPrice) && parsedMaterialPrice >= 0
               ? parsedMaterialPrice
               : 0,
-            isOptional: isOptional || isMeasuredAfterWork,
+            isOptional,
             isMeasuredAfterWork,
           })
         }
@@ -529,7 +537,7 @@ const {
               />
               <div style={{ marginTop: 8, fontSize: 12, color: GRAY_500, lineHeight: 1.5 }}>
                 Rozpoznawane są też kolumny klienta: adres, telefon, e-mail, pow. dachu, nr wyceny i VAT.
-                Dla rozliczenia po wykonaniu wpisz „tak” w kolumnach „Opcja” i „Wg obmiaru”; ilość może pozostać pusta.
+                Dla rozliczenia po wykonaniu wpisz „tak” w kolumnie „Wg obmiaru”; ilość może pozostać pusta. „Opcja” jest niezależnym ustawieniem.
                 Aby dodać tekst do uwag PDF, dodaj kolumnę „Rodzaj” i w osobnym wierszu wpisz „uwagi” oraz treść w kolumnie „Uwagi”.
                 Wielowierszową treść CSV ujmij w podwójne cudzysłowy.
               </div>
@@ -954,7 +962,6 @@ const {
                     <button onClick={() => {
                       const isOptional = item.isOptional !== true
                       updateQuoteItem(idx, 'isOptional', isOptional)
-                      if (!isOptional) updateQuoteItem(idx, 'isMeasuredAfterWork', false)
                     }}
                       title="Oznacz pozycję jako opcjonalną poza przedmiarem"
                       style={{
@@ -965,7 +972,7 @@ const {
                         transition: 'all 0.15s', whiteSpace: 'nowrap', fontFamily: 'inherit',
                       }}
                     >{item.isOptional === true ? '✓ opcja' : 'opcja'}</button>
-                    {item.isOptional === true && !item.isFlat && (
+                    {!item.isFlat && (
                       <button
                         onClick={() => updateQuoteItem(idx, 'isMeasuredAfterWork', item.isMeasuredAfterWork !== true)}
                         title="Nie podawaj ilości ani łącznej kwoty — rozliczenie po wykonaniu według faktycznego obmiaru"
@@ -1067,7 +1074,7 @@ const {
             <span>DO ZAPŁATY</span>
             <span>{fmt(doZaplaty)} zł</span>
           </div>
-          {(hasPricedOptions || hasMeasuredOptions) && (
+          {(hasPricedOptions || hasMeasuredItems) && (
             <div style={{
               margin: '8px 0', padding: '10px 14px', border: '1px solid #fcd34d',
               borderLeft: '4px solid #d97706', borderRadius: 8, background: '#fffbeb',
@@ -1078,7 +1085,7 @@ const {
                   {' '}+ {fmt(optionsNet)} zł netto ({fmt(optionsGross)} zł brutto)
                 </div>
               )}
-              {hasMeasuredOptions && (
+              {hasMeasuredItems && (
                 <div style={{ marginTop: 4, fontSize: 11, color: '#78350f' }}>
                   Pozycje oznaczone „wg obmiaru” zostaną rozliczone po wykonaniu i nie są wliczone do sumy wyceny.
                 </div>

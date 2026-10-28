@@ -57,9 +57,11 @@ Aby wyczyścić wycenę kliknij przycisk "Wyczyść" w kreatorze.
 - ✅ Dodawanie własnych usług i kategorii
 - ✅ Edycja cen i ilości bezpośrednio w wycenie
 - ✅ Oznaczanie usług jako opcjonalnych poza przedmiarem, z osobną sumą netto i brutto
+- ✅ Niezależne oznaczanie pozycji rozliczanych po wykonaniu według obmiaru
 - ✅ Domyślne nieuwzględnianie opcji w głównej kwocie oferty (można włączyć w ustawieniach PDF)
 - ✅ Rabat procentowy
 - ✅ Różne stawki VAT (23%, 8%, 0%)
+- ✅ Domyślne podsumowanie netto i ukryta stopka
 - ✅ Uwagi / warunki płatności
 - ✅ Podgląd PDF w przeglądarce
 - ✅ Pobieranie wyceny jako PDF
